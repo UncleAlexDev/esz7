@@ -1,5 +1,5 @@
 /**
-  \file   wsa.cpp
+  \file   wsa.c
   \author Aleksey Lekhtin
   \date   Jan 27, 2025
   \brief  WSA procedures
@@ -64,14 +64,14 @@ int set_socket_errno(socket_t *sock)
     return sock->err;
 }
 
-//---------------------------------------------------------
-void clear_socket_errno(socket_t *sock)
-{
-    sock->err = 0;
-}
+//// //---------------------------------------------------------
+//// void clear_socket_errno(socket_t *sock)
+//// {
+////     sock->err = 0;
+//// }
 
 //---------------------------------------------------------
-int socket_errno(socket_t *sock)
+int socket_errno(const socket_t *sock)
 {
     return sock->err;
 }
@@ -79,10 +79,11 @@ int socket_errno(socket_t *sock)
 //---------------------------------------------------------
 const char *socket_strerror(int err)
 {
-    static char buf[1024 * 4] = {0};
 #ifdef __linux__
-    snprintf(buf, sizeof(buf) - 1, "(%d) %s", err, strerror(err));
-    return buf;
+    if (err == 0) {
+        return "no error";
+    }
+    return strerror(err);
 #endif
 
 #ifdef _WIN32

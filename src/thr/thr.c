@@ -47,8 +47,8 @@ static void *thr__control(void *t)
         ret = thr->start_func(thr);
     }
     if (ret == -1) {
-        LOG(ERROR, "505: INTERNAL ERROR: start func returned %d - SOMETHING WRONG", ret);
-        DBGF(0, "\n505: INTERNAL ERROR: start func returned %d - SOMETHING WRONG\n", ret);
+        LOG(ERROR, "500: INTERNAL ERROR: start func returned %d - SOMETHING WRONG", ret);
+        DBGF(0, "\n500: INTERNAL ERROR: start func returned %d - SOMETHING WRONG\n", ret);
     }
 
     DBGF(8, "\n[tid:%08lX] lock thr::m_mutex", tid);
@@ -94,7 +94,7 @@ static void thr__stop(thr_t *thr)
     pthread_cond_signal(&thr->cond);
 
     if (thr->stop_func) {
-        DBGF(8, "[tid:%08lX] %s thr::stop_func", tid, thr->name);
+        DBGF(1, "[tid:%08lX] %s thr::stop_func", tid, thr->name);
         thr->stop_func(thr);
     }
 }
@@ -203,7 +203,7 @@ void thr_stop_all()
 }
 
 //---------------------------------------------------------
-void thr_wait_all_done(uint32_t sec)
+void thr_wait_all_done(const uint32_t sec)
 {
     pthread_t tid = pthread_self();
     thr__print_info();
@@ -300,6 +300,7 @@ const char *thr_type_to_string(thr_type_t type)
     if (type == THR_TYPE_WITS) return "THR_TYPE_WITS";
     if (type == THR_TYPE_WITS_CLIENT) return "THR_TYPE_WITS_CLIENT";
     if (type == THR_TYPE_CORE) return "THR_TYPE_ESZ7";
+    if (type == THR_TYPE_HEARTBEAT) return "THR_TYPE_HEARTBEAT";
     if (type == THR_TYPE_ESZ7_CMD) return "THR_TYPE_ESZ7_CMD";
     if (type == THR_TYPE_ADS_CMD) return "THR_TYPE_ADS_CMD";
     if (type == THR_TYPE_ADS_DATA) return "THR_TYPE_ADS_DATA";

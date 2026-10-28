@@ -101,7 +101,8 @@ typedef struct aps_wits_t
     uint32_t seqnum;
     uint16_t ACTCOD;
 
-    stat_t stat;
+    uint32_t send_ok;
+    uint32_t send_error;
 } aps_wits_t;
 
 #endif //APS_WITS_T__H_

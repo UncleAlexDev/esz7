@@ -8,13 +8,10 @@
 #ifndef ATLAS_SOCKET__H_
 #define ATLAS_SOCKET__H_
 
-#include <stdint.h>
 #include <stdbool.h>
-
-#include "socket.h"
 
 bool atlas_open_udp_socket();
 void atlas_socket_close();
-bool atlas_socket_send(const char *bytes, int nbytes);
+bool atlas_socket_send();
 
 #endif // ATLAS_SOCKET__H_

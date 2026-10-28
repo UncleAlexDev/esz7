@@ -120,14 +120,14 @@ static void prune_old_logs(void)
 //---------------------------------------------------------
 static void check_and_rotate(void)
 {
-    off_t size = lseek(m_log_fd, 0, SEEK_END);
+    const off_t size = lseek(m_log_fd, 0, SEEK_END);
     if (size < LOG_MAX_SIZE) {
         return;
     }
 
     struct timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);
-    struct tm *tm_info = localtime(&ts.tv_sec);
+    const struct tm *tm_info = localtime(&ts.tv_sec);
 
     char time_str[32];
     if (tm_info) {
@@ -184,6 +184,7 @@ void log_open_file(const char *logpath)
     m_log_fd = open(m_logfname, O_WRONLY | O_CREAT | O_APPEND, 0600);
     if (m_log_fd < 0) {
         m_log_fd = STDERR_FILENO;
+        DBGF(0, "can't open log file %s", m_logfname);
     }
     write(m_log_fd, "\n", 1);
 }
@@ -192,6 +193,7 @@ void log_open_file(const char *logpath)
 void log_message(log_type_t level, const char *msg)
 {
     if (m_log_fd < 0) {
+        DBG(0, "500: INTERNAL ERROR: log system is not started");
         return;
     }
     if (m_log_fd != STDERR_FILENO) {
@@ -208,7 +210,7 @@ void log_message(log_type_t level, const char *msg)
     static char prefix[64];
     int len = snprintf(prefix, sizeof(prefix), "%s %-10s ", timestamp, log_type);
     if (len <= 0) {
-        DBG(0, "505: INTERNAL ERROR: snprintf() failed");
+        DBG(0, "500: INTERNAL ERROR: snprintf() failed");
         return;
     }
     if (len >= (int) sizeof(prefix)) {

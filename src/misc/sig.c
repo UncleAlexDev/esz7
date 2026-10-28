@@ -20,24 +20,18 @@
 typedef __p_sig_fn_ef_ sighandler_t;
 #endif
 
-/*-------------------------------------------------------*/
+//---------------------------------------------------------
 static void try_exit_gracefully();
 static const char *signal_name(int snum);
 static int sigs[] = {SIGINT, SIGABRT, SIGTERM, SIGSEGV, SIGUSR1, SIGUSR2, SIGQUIT, SIGPIPE, 0, 0};
 static int lockstatus = 0;
 
-/*-------------------------------------------------------*/
+//---------------------------------------------------------
 void sigaction_handler(int snum)
 {
-    //if (cfg()->test_mode) {
-    //    printf("%s", "\033[2J\033[H"); // clear terminal  // ESC
-    //    printf("\033[200B\n"); // jump to terminal bottom // ESC
-    //}
-
     LOG(INFO, "========== Signal %s (lock:%d) ==========",
         signal_name(snum), lockstatus);
-    DBGF(0, "%s========== Signal %s (lock:%d) ==========",
-         (debug_level > 0 ? "\n" : ""),
+    DBGF(0, "\n========== Signal %s (lock:%d) ==========",
          signal_name(snum), lockstatus);
 
     if (lockstatus == 1) {
@@ -69,7 +63,7 @@ void sigaction_handler(int snum)
     debug_level = currentdbg;
 }
 
-/*-------------------------------------------------------*/
+//---------------------------------------------------------
 bool set_sig_action()
 {
 #ifdef __linux__
@@ -98,7 +92,7 @@ bool set_sig_action()
     return 1;
 }
 
-/*-------------------------------------------------------*/
+//---------------------------------------------------------
 static const char *signal_name(int snum)
 {
     if (snum == SIGINT)
@@ -125,14 +119,12 @@ static const char *signal_name(int snum)
     return buf;
 }
 
-/*-------------------------------------------------------*/
+//---------------------------------------------------------
+
 static void try_exit_gracefully()
 {
     DBGF(1, "\n%s", __func__);
     THR_STOP(core()->thr);
-    //if (cfg()->test_mode) {
-    //    printf("%s", "\033[200B"); // jump to terminal bottom // ESC
-    //}
     nanosleep(&(struct timespec) {.tv_nsec = TS_200MS}, NULL);
     DBG(3, "done");
 }

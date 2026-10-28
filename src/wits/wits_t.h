@@ -5,8 +5,8 @@
   \brief  Структуры данных WITS для работы с Atlas
 */
 
-#ifndef ATLAS_WITS_T_H
-#define ATLAS_WITS_T_H
+#ifndef HEARTBEAT_WITS_T_H
+#define HEARTBEAT_WITS_T_H
 
 #include "core_t.h"
 #include "main.h"
@@ -61,7 +61,8 @@ typedef struct wits_t
     uint32_t record_id;
     uint32_t logical_record_type;
 
-    stat_t stat;
+    uint32_t send_ok;
+    uint32_t send_error;
 } wits_t;
 
-#endif // ATLAS_WITS_T_H
+#endif // HEARTBEAT_WITS_T_H

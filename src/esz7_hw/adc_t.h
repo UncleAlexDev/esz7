@@ -17,7 +17,7 @@
 // Register map
 typedef enum reg_map_t
 {
-	RegID      = 0x00,
+	RegID      = (uint8_t)0x00,
 	RegStatus0 = 0x01,
 	RegMode0   = 0x02,
 	RegMode1   = 0x03,
@@ -36,15 +36,15 @@ typedef enum reg_map_t
 
 typedef enum cmdop_t
 {
-	CMDOP_NOP    = (uint16_t)0,
-	CMDOP_RESET  = 0x06,
-	CMDOP_START  = 0x08,
-	CMDOP_STOP   = 0x0A,
-	CMDOP_RDATA  = 0x12,
-	CMDOP_OFSCAL = 0x16,
-	CMDOP_GANCAL = 0x17,
-	CMDOP_RREG   = 0x20,
-	CMDOP_WREG   = 0x40,
+	CMDOP_NOP    = (uint16_t)0u,
+	CMDOP_RESET  = 0x06u,
+	CMDOP_START  = 0x08u,
+	CMDOP_STOP   = 0x0Au,
+	CMDOP_RDATA  = 0x12u,
+	CMDOP_OFSCAL = 0x16u,
+	CMDOP_GANCAL = 0x17u,
+	CMDOP_RREG   = 0x20u,
+	CMDOP_WREG   = 0x40u,
 } regop_t;
 
 // Read Device status Answer:

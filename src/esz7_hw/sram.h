@@ -32,6 +32,7 @@ int sram_get_ready_bundle_num(int channel);
 const Bundle_t *sram_get_bundle(int channel, int bundlenum);
 const Bundle_t *sram_get_ready_bundle(int channel);
 void sram_clear_bundle_ready(int channel, int bundle_num);
+int32_t sram_value(const AdcRec_t *restrict rec, const uint32_t index, int *restrict err);
 
 void sram_mem_clear();
 

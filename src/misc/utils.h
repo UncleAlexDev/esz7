@@ -43,7 +43,9 @@ struct tm clock_get_local_time(struct timespec *ts);
 void ns_to_timespec(uint64_t ns, struct timespec *ts);
 uint64_t timespec_to_ns(const struct timespec *ts);
 
-const char *timespec_to_str(const struct timespec *ts, char *out);
+//// const char *timespec_to_str_nz(const struct timespec *ts, char *out, int nz);
+const char *timespec_to_str_03(const struct timespec *ts, char *out);
+const char *timespec_to_str_06(const struct timespec *ts, char *out);
 void timespec_diff(struct timespec *ts_diff, const struct timespec *tsbeg, const struct timespec *tsend, int *minus);
 bool test_diff_timespec();
 
@@ -63,8 +65,11 @@ struct tm *local_time(const time_t *secs, struct tm *tm);
 const char *secs_to_gmt_yymmdd_hhmmss(time_t secs);
 const char *secs_to_gmt_ddmmyyyy_hhmmss(time_t secs, char *out);
 const char *get_date_time();
+
 int nsleep(long int nsec);
 int ssleep(long int sec);
+int thr_sleep_ms(thr_t *thr, long ms);
+int thr_sleep_absolute(thr_t *thr, struct timespec *next_time, const long ms);
 
 bool remove_file(const char *filename);
 void print_hexdump(const char *data, int datalen);

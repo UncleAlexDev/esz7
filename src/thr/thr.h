@@ -34,7 +34,7 @@
 #define THR_STOP_GROUP(_group_id) thr_stop_group(_group_id)
 
 #define THR_START(_thr, _mode, _func_start, _func_stop, _payload, _free_payload, _name) \
-        thr_prop_t _prop = {                                                            \
+        thr_prop_t prop_##_thr = {                                                            \
             .mode = (_mode),                                                            \
             .start_func = (_func_start),                                                \
             .stop_func = (_func_stop),                                                  \
@@ -43,9 +43,9 @@
             .free_payload = (_free_payload)                                             \
         };                                                                              \
         if (_name) {                                                                    \
-            strlcpy((_prop).name, (_name), sizeof((_prop).name));                       \
+            strlcpy((prop_##_thr).name, (_name), sizeof((prop_##_thr).name));           \
         }                                                                               \
-        thr_t *(_thr) = thr_create(&_prop)
+        thr_t *(_thr) = thr_create(&prop_##_thr)
 
 #define THR_PROP_CLONE(_new_prop, _thr, _type, _func_start, _func_stop, _payload, _free_payload, _name) \
         thr_prop_t _new_prop = {                                                                        \
@@ -62,7 +62,7 @@
             strlcpy((_new_prop).name, (_name), sizeof((_new_prop).name));                               \
         }
 
-thr_t *thr_create(const thr_prop_t *thr);
+thr_t *thr_create(const thr_prop_t *thr_prop);
 void thr_stop(thr_t *thr);
 void thr_stop_all();
 void thr_wait_all_done(uint32_t sec);

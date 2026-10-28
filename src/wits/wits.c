@@ -13,6 +13,8 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "log.h"
+
 /*---------------------------------------------------------*/
 static wits_t m_wits = {
     .packet.nmem = 0,
@@ -38,6 +40,41 @@ static int compare(const void *a, const void *b)
     return r1->code > r2->code;
 }
 
+
+
+//---------------------------------------------------------
+static bool wits_create_default_config(const char *fname)
+{
+    const time_t tim = time(NULL);
+    FILE *fp = fopen(fname, "w");
+    if (!fp) {
+        int e = errno;
+        printf("\n\nwarning - can't create file %s (%s)\n", fname, strerror(e));
+        return FAIL;
+    }
+
+    char buf[4 * 1024] = {0};
+    snprintf(buf, sizeof(buf) - 1,
+             "# Created: %s"
+             "#\n"
+             "# To restore the default configuration - delete this file.\n"
+             "# It will be recreated the next time app launch.\n"
+             "#"
+             "\n"
+             "rec01=The_Well\n"
+             "rec03=151\n"
+             "pressure1=21\n"
+             "pressure2=41\n"
+             "hookload=14\n"
+             "encoder1=12\n"
+             "encoder2=42\n"
+             "\n",
+             ctime(&tim));
+    const size_t nwrote = fwrite(buf, strlen(buf), 1, fp);
+    fclose(fp);
+    return (nwrote == 1 ? OK : FAIL);
+}
+
 //---------------------------------------------------------
 static void wits_read_config()
 {
@@ -45,10 +82,23 @@ static void wits_read_config()
 
     char fname[1024];
     snprintf(fname, sizeof(fname), "%s/%s", cfg()->appdir, m_wits.config.fname);
-    const int fd = open(fname, O_RDONLY, 0640);
+    int fd = open(fname, O_RDONLY, 0640);
     if (fd == -1) {
-        DBGF(0, "\nWARNING: Can't read config file '%s'\n", fname);
-        return;
+        int e = errno;
+        if (e != ENOENT) {
+            printf("\n\nERROR: Can't open file '%s'\n%s\n", fname, strerror(e));
+            return;
+        }
+
+        wits_create_default_config(fname);
+
+        printf("-- created wits config file template '%s'\n", fname);
+        fd = open(fname, O_RDONLY, 0640);
+        if (fd == -1) {
+            printf("\n\nERROR: Can't read config file '%s'\n", fname);
+            return;
+        }
+
     }
     char text[1024 * 2] = {0};
     const size_t nread = read(fd, text, sizeof(text) - 1);
@@ -144,9 +194,12 @@ static void wits_read_config()
 //---------------------------------------------------------
 inline void wits_send_data()
 {
+    if (wits()->port == 0) {
+        return;
+    }
     pthread_mutex_lock(&wits()->mutex);
     wits_create_packet();
-    DBGF(2, ">>> Wits packet #%-2d (size: %d)", wits()->seqnum, wits()->packet.nbytes);
+    DBGF(2, ">>> Wits packet  #%-2d (size: %d)", wits()->seqnum, wits()->packet.nbytes);
     thr_wakeup_by_type(THR_TYPE_WITS_CLIENT);
     pthread_mutex_unlock(&wits()->mutex);
 }
@@ -154,8 +207,14 @@ inline void wits_send_data()
 /*---------------------------------------------------------*/
 bool wits_run()
 {
-    DBG(1);
     wits_read_config();
+    if (m_wits.port == 0) {
+        LOG(INFO, "Wits port is zero - start canceled");
+        DBG(1, "Wits port is zero - start canceled");
+        return OK;
+    }
+
+    DBG(1);
     m_wits.host = cfg()->wits_host;
     m_wits.port = cfg()->wits_port;
     wits_packet_init();

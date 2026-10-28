@@ -91,9 +91,9 @@ static bool ads_data_send_to_client(thr_t *thr, const ads_t *ads, socket_t *sock
 
     int ret = socket_send(sock, ads->data.packet.bytes, ads->data.packet.nbytes);
     if (ret == -1) {
-        LOG(ERROR, "%s (cli_fd:%d '%s') - send failed - '%s'", sock->name, sock->fd, sock->cli_host,
+        LOG(ERROR, "%s (cli_fd:%02d '%s') - send failed - '%s'", sock->name, sock->fd, sock->cli_host,
             socket_strerror(sock->err));
-        DBGF(0, "%s (cli_fd:%d '%s') - send failed - '%s'", sock->name, sock->fd, sock->cli_host,
+        DBGF(0, "%s (cli_fd:%02d '%s') - send failed - '%s'", sock->name, sock->fd, sock->cli_host,
              socket_strerror(sock->err));
         if (sock->err != EPIPE && sock->err != ECONNRESET) { ;
         }

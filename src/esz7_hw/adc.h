@@ -22,8 +22,8 @@
 #define REF_ADS_DEF     0x0A    /** External */
 void setup_registers_address(void *reg_mem_map);
 
-bool read_adc_register(int channel, uint8_t reg_num, uint8_t *value);
-bool write_adc_register(int channel, uint8_t reg_num, uint8_t value);
+bool read_adc_register(int channel, reg_map_t reg_num, uint8_t *value);
+bool write_adc_register(int channel, reg_map_t reg_num, uint8_t value);
 
 bool init_adc(int channel);
 bool reset_adc(int channel);

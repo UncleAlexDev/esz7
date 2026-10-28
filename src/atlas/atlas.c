@@ -22,36 +22,13 @@
 
 /*---------------------------------------------------------*/
 static atlas_t m_atlas = {
-    .hosts = {
-        {
-            .host = NULL,
-            .port1 = 0,
-            .port2 = 0,
-            .sock1 = {.fd = INVALID_SOCKET},
-            .sock2 = {.fd = INVALID_SOCKET}
-        },
-        {
-            .host = NULL,
-            .port1 = 0,
-            .port2 = 0,
-            .sock1 = {.fd = INVALID_SOCKET},
-            .sock2 = {.fd = INVALID_SOCKET}
-        },
-        {
-            .host = NULL,
-            .port1 = 0,
-            .port2 = 0,
-            .sock1 = {.fd = INVALID_SOCKET},
-            .sock2 = {.fd = INVALID_SOCKET}
-        },
-    },
-    .hosts_size = sizeof(m_atlas.hosts) / sizeof(m_atlas.hosts[0]),
-    .npnts500 = 500,
-    .packet = {},
-    .packet.nbytes = 0,
-    .packet.bytes = NULL,
-    .stat = {},
-    .fd_stat = -1,
+        .host = {},
+        .host_total = sizeof(m_atlas.host) / sizeof(m_atlas.host[0]),
+        .npnts500 = 500,
+        .packet = {},
+        .packet.nbytes = 0,
+        .packet.bytes = NULL,
+        .fd_stat = -1,
 };
 
 /*---------------------------------------------------------*/
@@ -63,22 +40,10 @@ inline atlas_t *atlas()
 /*---------------------------------------------------------*/
 bool atlas_run()
 {
-    if (cfg()->atlas_host1[0] != '\0') {
-        m_atlas.hosts[0].host = cfg()->atlas_host1;
-        m_atlas.hosts[0].port1 = cfg()->atlas_port11;
-        m_atlas.hosts[0].port2 = cfg()->atlas_port12;
-    }
-
-    if (cfg()->atlas_host2[0] != '\0') {
-        m_atlas.hosts[1].host = cfg()->atlas_host2;
-        m_atlas.hosts[1].port1 = cfg()->atlas_port21;
-        m_atlas.hosts[1].port2 = cfg()->atlas_port22;
-    }
-
-    if (cfg()->atlas_host3[0] != '\0') {
-        m_atlas.hosts[2].host = cfg()->atlas_host3;
-        m_atlas.hosts[2].port1 = cfg()->atlas_port31;
-        m_atlas.hosts[2].port2 = cfg()->atlas_port32;
+    for (size_t i = 0; i < m_atlas.host_total; i++) {
+        memcpy(&m_atlas.host[i], &cfg()->atlas_host[i], sizeof(m_atlas.host[i]));
+        m_atlas.host[i].sock1.fd = INVALID_SOCKET;
+        m_atlas.host[i].sock2.fd = INVALID_SOCKET;
     }
 
     strncpy(m_atlas.serno, cfg()->atlas_serno, sizeof(m_atlas.serno) - 1);
@@ -123,12 +88,7 @@ inline void atlas_data_send()
          atlas()->packet.rtp.fixed_part.timerange,
          atlas()->packet.nbytes);
 
-    bool ok = atlas_socket_send(atlas()->packet.bytes, atlas()->packet.nbytes);
-    if (!ok) {
-        atlas()->stat.send_error++;
-    } else {
-        atlas()->stat.send_ok++;
-    }
+    atlas_socket_send();
 }
 
 //---------------------------------------------------------
@@ -137,25 +97,47 @@ inline void atlas_write_telemetry()
     if (atlas()->fd_stat == -1) {
         return;
     }
-    static char buf[512];
-    snprintf(buf, sizeof(buf), "enc: %d %d\n"
-             "sent: %d %d\n"
-             "wits: %d %d\n"
+    static char buf[1024];
+    snprintf(buf, sizeof(buf),
+             "enc: %d %d\n"
              "adcref: %0.04f %0.20f\n"
-             "ch1avrg: %10d %08X %11.8f\n"
-             "ch2avrg: %10d %08X %11.8f\n"
-             "ch3avrg: %10d %08X %11.8f\n"
-             "ch4avrg: %10d %08X %11.8f\n\n",
-             core()->data.encoder1, core()->data.encoder2,
-             atlas()->stat.send_ok, atlas()->stat.send_error,
-             wits()->stat.send_ok, wits()->stat.send_error,
+             "ch1avrg: %08d %08X %11.8f\n"
+             "ch2avrg: %08d %08X %11.8f\n"
+             "ch3avrg: %08d %08X %11.8f\n"
+             "ch4avrg: %08d %08X %11.8f\n"
+             "wits: %d %d\n"
+             "sentok: %d %d\n",
+             core()->data.encoder1,
+             core()->data.encoder2,
              cfg()->adc_ref,
              cfg()->adc_scale,
              core()->data.values[0].avrg, core()->data.values[0].avrg, core()->data.values[0].avrg * cfg()->adc_scale,
              core()->data.values[1].avrg, core()->data.values[1].avrg, core()->data.values[1].avrg * cfg()->adc_scale,
              core()->data.values[2].avrg, core()->data.values[2].avrg, core()->data.values[2].avrg * cfg()->adc_scale,
-             core()->data.values[3].avrg, core()->data.values[3].avrg, core()->data.values[3].avrg * cfg()->adc_scale);
+             core()->data.values[3].avrg, core()->data.values[3].avrg, core()->data.values[3].avrg * cfg()->adc_scale,
+             wits()->send_ok,
+             wits()->send_error,
+             atlas()->send_ok,
+             atlas()->send_error);
     lseek(atlas()->fd_stat, 0, SEEK_SET);
     write(atlas()->fd_stat, buf, strlen(buf));
-    DBGF(4, "stat: %s", replace(buf, '\n', ' '));
+    DBGF(5, "stat: %s", replace(buf, '\n', ' '));
+
+    for (size_t i = 0; i < atlas()->host_total; ++i) {
+        if (atlas()->host[i].name[0] != 0) {
+            snprintf(buf, sizeof(buf),
+                     "sendto%u: %s;%u;%s;%u;%s\n",
+                     i+1,
+                     atlas()->host[i].name,
+                     atlas()->host[i].port1,
+                     atlas()->host[i].status1,
+                     atlas()->host[i].port2,
+                     atlas()->host[i].status2);
+        } else {
+            snprintf(buf, sizeof(buf), "sendto%u: ;;;;\n", i+1);
+        }
+        write(atlas()->fd_stat, buf, strlen(buf));
+        DBGF(5, "stat: %s", replace(buf, '\n', ' '));
+    }
+    write(atlas()->fd_stat, "\n", 1);
 }

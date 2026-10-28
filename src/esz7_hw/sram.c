@@ -15,6 +15,8 @@
 #include "defines.h"
 #include "dbg.h"
 #include "sram.h"
+
+#include "esz7_regs.h"
 #include "utils.h"
 #include "log.h"
 
@@ -86,8 +88,8 @@ void setup_sram_reg_addr(const mem_cfg_t *mem)
 {
     CtrlMem = (volatile CtrlMem_t *) (mem->reg_mem_map + SRAM_ADCDEV_ADDR);
     StatMem = (volatile StatMem_t *) (mem->reg_mem_map + SRAM_STATREG_ADDR);
-    Mem0Len = ((volatile LenMem_t *) (mem->reg_mem_map + SRAM_BUFLEN0_ADDR));
-    Mem1Len = ((volatile LenMem_t *) (mem->reg_mem_map + SRAM_BUFLEN1_ADDR));
+    Mem0Len = (volatile LenMem_t *) (mem->reg_mem_map + SRAM_BUFLEN0_ADDR);
+    Mem1Len = (volatile LenMem_t *) (mem->reg_mem_map + SRAM_BUFLEN1_ADDR);
 
     m_sram.mem[0] = (sram_mem_t *) mem->sram_map[0];
     m_sram.mem[1] = (sram_mem_t *) mem->sram_map[1];
@@ -194,32 +196,51 @@ int sram_status_get_bundle_ready(int channel, const SramStat_t *sram_stat)
 }
 
 //---------------------------------------------------------
-#if 0
-static int sram_read_len(const int channel)
+int32_t sram_value(const AdcRec_t *restrict rec, const uint32_t index, int *restrict err)
 {
-    LenMem_t buflen;
-    if (channel == 1) {
-        buflen = *Mem0Len;
-        return buflen.GivenBufLenEven;
+    uint64_t v = rec[index].value;
+    const uint32_t adc_status = (uint32_t) (v & 0xFFFFFFFF); // AdcStatus
+    *err = 0;
+    // 0x07065512 - the special fixed adc command constant (STATUS0 CRC DAT CMD) (07 - good status)
+    if ((adc_status & 0x00FFFFFFu) != 0x00065512) {
+        const uint32_t st = __builtin_bswap32(adc_status);
+        const AdcRecStatus_t AdcStatus = {
+                .value = adc_status
+        };
+
+        LOG(CRITICAL, "[%03d]:%016llX (%06X <> 125506) STATUS0:0x%02X", index, v, st >> 8u, st & 0x00FFu);
+        //DBGF(0, "ERROR: [%03d]:%016llX (%06X <> 125506) STATUS0:0x%02X", index, v, st >> 8u, st & 0x00FFu);
+        DBGF(0, "ERROR: [%03d] %016llX - CMD:%08X, DATA:%08X, CRC:%08X, STATUS0:%08X",
+             index, v, AdcStatus.bits.CMD, AdcStatus.bits.DAT, AdcStatus.bits.CRC, AdcStatus.bits.STATUS0);
+        *err = 1;
+        if (index > 0) {
+            v = rec[index - 1].value;
+        } else {
+            v = 0;
+        }
     }
-    if (channel == 2) {
-        buflen = *Mem0Len;
-        return buflen.GivenBufLenOdd;
+
+    // TODO v.bits.ValueCRC => *err = 1;
+    const uint32_t raw = (uint32_t) (v >> 32u);
+    uint32_t raw_value = __builtin_bswap32(raw) >> 8u; // ARM Cortex-A9 specific bswap32()
+    if (raw_value & 0x00800000u) {
+        raw_value |= 0xFF000000u; // Заполняем старший байт единицами для отрицательного числа
     }
-    if (channel == 3) {
-        buflen = *Mem1Len;
-        return buflen.GivenBufLenEven;
+    int32_t value = (int32_t) raw_value;
+    if (cfg()->adc_use_negative) {
+        return value;
     }
-    if (channel == 4) {
-        buflen = *Mem1Len;
-        return buflen.GivenBufLenOdd;
+    if (value < 0) {
+        // for negative!
+        // TODO - что делать с отрицательными всплесами на униполярном подключении?
+        // Актуально-ли делать калибровку от помех на мелочевке в микровольтах?
+        value = 0;
     }
-    return 0;
+    return value;
 }
-#endif
 
 //---------------------------------------------------------
-void sram_init(int length)
+void sram_init(const int length)
 {
     DBG(1, "\n");
     sram_mem_clear();

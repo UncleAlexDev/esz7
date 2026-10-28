@@ -69,7 +69,7 @@ void toggle_points_buffer_ch(int ch)
 
 //---------------------------------------------------------
 /// @param channel - [1..4]
-static void reset_STAT12(int channel)
+static void reset_STAT12(const int channel)
 {
     // Detect PGA out-of-range operating conditions by polling the STAT12 bit (bit 4 of the STATUS conversion byte or
     // STATUS0 register). The STAT12 bit is the logical OR of all PGA error flags with the CRC2 error flag. When the
@@ -100,39 +100,6 @@ static void reset_STAT12(int channel)
 }
 
 //---------------------------------------------------------
-static int32_t sram_value(const AdcRec_t *restrict rec, const uint32_t index, int *restrict crcerr)
-{
-    *crcerr = 0;
-    uint64_t v = rec[index].value;
-    const uint32_t status = (uint32_t) (v & 0xFFFFFFFF); // AdcStatus
-
-    // 0x07065512 - the special fixed adc command constant (STATUS0 CRC DAT CMD) (07 - good status)
-    if ((status & 0x00FFFFFFu) != 0x00065512) {
-        const uint32_t st = __builtin_bswap32(status);
-        LOG(CRITICAL, "v[%03d]:%016llX status:0x%08X (%06X <> 125506)", index, v, st, st >> 8u);
-        DBGF(0, "v[%03d]:%016llX status:0x%08X (%06X <> 125506)", index, v, st, st >> 8u);
-        *crcerr = 1;
-        if (index > 0) {
-            v = rec[index - 1].value;
-        } else {
-            v = 0;
-        }
-    }
-
-    // TODO v.bits.ValueCRC;
-    const uint32_t raw = (uint32_t) (v >> 32u);
-    const uint32_t raw_rev = __builtin_bswap32(raw) >> 8u; // ARM Cortex-A9 specific bswap32()
-    int32_t value = (int32_t) raw_rev;
-    value <<= 8;
-    value >>= 8;
-    return value;
-
-    // for negative!
-    // TODO - что делать с отрицательными всплесами на униполярном подключении?
-    // Актуально-ли делать калибровку от помех на мелочевке в микровольтах?
-}
-
-//---------------------------------------------------------
 /// @brief Формирование массива данных из SRAM-памяти ESZ7.
 /// @param channel    номер блока sram соответствующий номеру АЦП (канал: 1..4)
 /// @param bundle_num  массив точек измерений
@@ -153,15 +120,8 @@ void get_data_from_sram(const int channel, const int bundle_num)
         DBGF(3, "channel: %d, dpt_delay: %d, dt: %d, shifts: %d", channel, cfg()->dpt_delay, dt, shifts);
     }
 
-    bool stat12 = false;
-    for (int i = 0; i < core()->npnts; i++) {
-        if (recs[i].bits.AdcStatus.bits.STATUS0 & 0x10u) {
-            // STAT12
-            stat12 = true;
-        }
-    }
-
-    int crcerr = 0;
+    int got_error = 0;
+    int there_is_problem = 0;
     const int npnts = core()->npnts;
 
     points_t *restrict pnts = &core()->data.values[ch];
@@ -173,17 +133,29 @@ void get_data_from_sram(const int channel, const int bundle_num)
         const int num = npnts - shifts;
         for (int i = 0; i < shifts; i++) {
             const int off = num + i;
-            R[i] = sram_value(recs, off, &crcerr);
+            R[i] = sram_value(recs, off, &got_error);
+            if (got_error) {
+                there_is_problem = 1;
+                R[i] = 0;
+            }
         }
 
         // i >= shifts
         for (int i = shifts; i < npnts; i++) {
             const int off = i - shifts;
-            W[i] = sram_value(recs, off, &crcerr);
+            W[i] = sram_value(recs, off, &got_error);
+            if (got_error) {
+                there_is_problem = 1;
+                W[i] = 0;
+            }
         }
     } else {
         for (int i = 0; i < npnts; i++) {
-            W[i] = sram_value(recs, i, &crcerr);
+            W[i] = sram_value(recs, i, &got_error);
+            if (got_error) {
+                there_is_problem = 1;
+                W[i] = 0;
+            }
         }
     }
 
@@ -191,7 +163,7 @@ void get_data_from_sram(const int channel, const int bundle_num)
     for (int i = 0; i < npnts; i++) {
         pnts->sum += pnts->R[i];
     }
-    pnts->avrg = pnts->sum / npnts;
+    pnts->avrg = (int32_t)(pnts->sum / npnts);
 
     //-------------------------------------------
     // pulse mode - подключение инклинометра "напрямую"
@@ -210,9 +182,23 @@ void get_data_from_sram(const int channel, const int bundle_num)
         }
     }
 
-    if (stat12) {
-        reset_STAT12(channel);
+    if (!there_is_problem) {
+        int STAT12 = 0;
+        for (int i = 0; i < core()->npnts; i++) {
+            if (recs[i].bits.AdcStatus.bits.STATUS0 & 0x10u) {
+                STAT12 = 1;
+            }
+        }
+        if (STAT12) {
+            reset_STAT12(channel);
+        }
     }
+
+    if (there_is_problem) {
+        LOG(CRITICAL, "\n");
+        DBGNL(0);
+    }
+
 }
 
 //---------------------------------------------------------
@@ -280,17 +266,17 @@ static void core_epoll()
             }
             if (got_channels == 0) {
                 ts_start_measu = ts;
-                DBGF(4, "time start measu: %s", timespec_to_str(&ts_start_measu, NULL));
+                DBGF(4, "time start measu: %s", timespec_to_str_06(&ts_start_measu, NULL));
             }
         }
         DBGF(4, "---- epoll_wait(epl()->fd:%d, events: %d, -1);", epl()->fd, EVENTS_EXPECTED);
         const int nEvents = epoll_wait(epl()->fd, events, EVENTS_EXPECTED, -1);
         clock_get_local_time(&ts_current);
-        DBGF(4, "got event: %s", timespec_to_str(&ts_current, NULL));
+        DBGF(4, "got event: %s", timespec_to_str_06(&ts_current, NULL));
 
         if (nEvents == -1) {
-            LOG(ERROR, "505: INTERNAL ERROR: epoll_wait() returns -1, errno:%d (%s)", errno, strerror(errno));
-            DBGF(0, "\n505: INTERNAL ERROR:  epoll_wait() returns -1, errno:%d (%s)", errno, strerror(errno));
+            LOG(ERROR, "500: INTERNAL ERROR: epoll_wait() returns -1, errno:%d (%s)", errno, strerror(errno));
+            DBGF(0, "\n500: INTERNAL ERROR:  epoll_wait() returns -1, errno:%d (%s)", errno, strerror(errno));
             break;
         }
 
@@ -304,8 +290,8 @@ static void core_epoll()
 
             channel = epl_find_event_file(events[idx].data.fd);
             if (channel == -1) {
-                LOG(ERROR, "505: INTERNAL ERROR: got unwanted event");
-                DBG(0, "505: INTERNAL ERROR: got unwanted event");
+                LOG(ERROR, "500: INTERNAL ERROR: got unwanted event");
+                DBG(0, "500: INTERNAL ERROR: got unwanted event");
                 continue;
             }
 
@@ -369,8 +355,8 @@ static void core_epoll()
                 timespec_diff(&ts1, &ts_start_measu, &ts_current, NULL);
                 clock_get_local_time(&ts_current);
                 timespec_diff(&ts2, &ts_total, &ts_current, NULL);
-                DBGF(3, "measurement: %s, total: %s\n\n", timespec_to_str(&ts1, buf1),
-                     timespec_to_str(&ts2, buf2));
+                DBGF(3, "measurement: %s, total: %s\n\n", timespec_to_str_06(&ts1, buf1),
+                     timespec_to_str_06(&ts2, buf2));
             }
         }
     } // while()
@@ -489,11 +475,11 @@ static int thread_start(thr_t *thr)
     timespec_diff(&ts, &ts_start, &ts_current, NULL);
     char timebuf2[TIMEBUFLEN], timebuf3[TIMEBUFLEN];
     LOG(INFO, "work time: %s sec [%s  -  %s]",
-        timespec_to_str(&ts, timebuf3),
+        timespec_to_str_03(&ts, timebuf3),
         timespec_to_dd_mm_yyyy_hh_mm_ss_nz(&ts_start, 0, timebuf),
         timespec_to_dd_mm_yyyy_hh_mm_ss_nz(&ts_current, 0, timebuf2));
     DBGF(0, "work time: %s sec [%s  -  %s]",
-         timespec_to_str(&ts, timebuf3),
+         timespec_to_str_03(&ts, timebuf3),
          timespec_to_dd_mm_yyyy_hh_mm_ss_nz(&ts_start, 0, timebuf),
          timespec_to_dd_mm_yyyy_hh_mm_ss_nz(&ts_current, 0, timebuf2));
     DBG(3, "--- core_thread finished ---");

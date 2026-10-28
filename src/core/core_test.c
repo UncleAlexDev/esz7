@@ -130,11 +130,15 @@ static void print_sram_values(const TEST_MODE test, const int channel)
     } else if (test == TEST3) {
         // распечатать среднее значение данных
         fwrite("\n--------------------\n", 1, 22, stdout);
+        printf("A2D scale:          ref:%0.6f, scale:%0.16f, use adc negative: %d\n",
+               cfg()->adc_ref, cfg()->adc_scale, cfg()->adc_use_negative);
+
         for (int i = 0; i < 4; i++) {
             printf("Channel: %d, points: %u, ", i + 1, core()->npnts);
-            printf("  sum: 0x%016llX (%16lld),  avrg: 0x%08X (%10d)\n",
+            printf("  sum: 0x%016llX (%16lld),  avrg: 0x%08X (%10d) %0.6fV\n",
                    core()->data.values[i].sum, core()->data.values[i].sum,
-                   core()->data.values[i].avrg, core()->data.values[i].avrg);
+                   core()->data.values[i].avrg, core()->data.values[i].avrg,
+                   core()->data.values[i].avrg * cfg()->adc_scale);
         }
         printf("Encoder-1:          %-5d\n", core()->data.encoder1);
         printf("Encoder-2:          %-5d\n", core()->data.encoder2);
@@ -266,7 +270,7 @@ static void core_test_epoll()
             }
 
             epl_read_event_file(events[i].data.fd); // read event to reset him activation
-        } // for()
+        }                                           // for()
     } while (!core()->thr->shuttingdown);
     DBG(1, "--- core_test_epoll finished");
 }

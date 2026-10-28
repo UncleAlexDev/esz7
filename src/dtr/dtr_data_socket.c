@@ -80,8 +80,8 @@ bool dtr_data_socket_send(const char *bytes, int nbytes)
         int err = sock->err;
         if (err != EPIPE && err != ECONNRESET) { ; // TODO
         }
-        LOG(ERROR, "%s/%d fd:%d - send failed - '%s'", sock->name, sock->port, sock->fd, socket_strerror(sock->err));
-        DBGF(0, "%s/%d fd:%d - send failed - '%s'", sock->name, sock->port, sock->fd, socket_strerror(sock->err));
+        LOG(ERROR, "%s/%d fd:%02d - send failed - '%s'", sock->name, sock->port, sock->fd, socket_strerror(sock->err));
+        DBGF(0, "%s/%d fd:%02d - send failed - '%s'", sock->name, sock->port, sock->fd, socket_strerror(sock->err));
         return FAIL;
     }
     DBGF(3, "%s/%d fd:%d - sent %d bytes to %s:%d", sock->name, sock->port, sock->fd,

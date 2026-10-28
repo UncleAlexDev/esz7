@@ -12,6 +12,7 @@
 #include <string.h>
 #include <sys/random.h>
 #include <sys/stat.h>
+#include <time.h>
 
 #include "cfg.h"
 #include "dbg.h"
@@ -24,7 +25,7 @@ static thread_local struct timespec m_ts;
 unsigned char check_byteorder()
 {
     unsigned char order;
-    unsigned int x = 1; // Assign a values where the least significant byte is 1
+    unsigned int x = 1;    // Assign a values where the least significant byte is 1
     char *c = (char *) &x; // Cast the address of x to a char pointer
     if (*c == 1) {
         order = 'L';
@@ -121,29 +122,95 @@ int hex_to_channel(uint8_t one_hot_value)
 }
 
 //---------------------------------------------------------
-int nsleep(const long int nsec)
+inline int nsleep(const long int nsec)
 {
-    const struct timespec *reqtime = &(struct timespec){.tv_sec = 0, .tv_nsec = nsec};
-    int ret = nanosleep(reqtime, NULL);
+    const struct timespec reqtime = {
+            .tv_sec = nsec / 1000000000L,
+            .tv_nsec = nsec % 1000000000L
+    };
+
+    const int ret = nanosleep(&reqtime, NULL);
     if (ret == -1) {
         const int e = errno;
-        DBGF(0, "505: INTERNAL ERROR: %s:%d failed - (%d), %s", __func__, __LINE__, e, strerror(e));
+        // EINTR игнорируется, если поток разбудил сигнал (опционально)
+        if (e == EINTR) {
+            return 0;
+        }
+        DBGF(0, "500: INTERNAL ERROR: %s:%d failed - (%d), %s", __func__, __LINE__, e, strerror(e));
         return -1;
     }
     return 0;
 }
 
 //---------------------------------------------------------
-int ssleep(const long int sec)
+inline int ssleep(const long int sec)
 {
     const struct timespec *reqtime = &(struct timespec){.tv_sec = sec, .tv_nsec = 0};
-    int ret = nanosleep(reqtime, NULL);
+    const int ret = nanosleep(reqtime, NULL);
     if (ret == -1) {
         const int e = errno;
-        DBGF(0, "505: INTERNAL ERROR: %s:%d failed - (%d), %s", __func__, __LINE__, e, strerror(e));
+        DBGF(0, "500: INTERNAL ERROR: %s:%d failed - (%d), %s", __func__, __LINE__, e, strerror(e));
         return -1;
     }
     return 0;
+}
+
+//---------------------------------------------------------
+int thr_sleep_absolute(thr_t *thr, struct timespec *next_time, const long ms)
+{
+    int rc = 0;
+
+    pthread_mutex_lock(&thr->mutex);
+    if (thr->shuttingdown) {
+        pthread_mutex_unlock(&thr->mutex);
+        return 1;
+    }
+
+    next_time->tv_sec += (ms / 1000);
+    next_time->tv_nsec += (ms % 1000) * 1000000L;
+
+    if (next_time->tv_nsec >= 1000000000L) {
+        next_time->tv_sec++;
+        next_time->tv_nsec -= 1000000000L;
+    }
+
+    while (!thr->shuttingdown && rc == 0) {
+        rc = pthread_cond_timedwait(&thr->cond, &thr->mutex, next_time);
+    }
+
+    const int should_close = thr->shuttingdown;
+    pthread_mutex_unlock(&thr->mutex);
+    return should_close;
+}
+
+//---------------------------------------------------------
+/// @return 1 - thread is finishing else 0
+int thr_sleep_ms(thr_t *thr, const long ms)
+{
+    struct timespec ts;
+    int rc = 0;
+
+    pthread_mutex_lock(&thr->mutex);
+    if (thr->shuttingdown) {
+        pthread_mutex_unlock(&thr->mutex);
+        return 1;
+    }
+
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    ts.tv_sec += (ms / 1000);
+    ts.tv_nsec += (ms % 1000) * 1000000L;
+    if (ts.tv_nsec >= 1000000000L) {
+        ts.tv_sec++;
+        ts.tv_nsec -= 1000000000L;
+    }
+
+    while (!thr->shuttingdown && rc == 0) {
+        rc = pthread_cond_timedwait(&thr->cond, &thr->mutex, &ts);
+    }
+
+    const int should_close = thr->shuttingdown;
+    pthread_mutex_unlock(&thr->mutex);
+    return should_close;
 }
 
 //---------------------------------------------------------
@@ -220,11 +287,11 @@ inline uint64_t timespec_to_ns(const struct timespec *ts)
  * @param ns - nanoseconds (relative to the UNIX epoch starting in 1970)
  * @return time string
  */
-const char *ns_to_str(uint64_t ns)
+const char *ns_to_str(const uint64_t ns)
 {
     struct timespec ts;
     ns_to_timespec(ns, &ts);
-    return timespec_to_str(&ts, innerbuf);
+    return timespec_to_str_06(&ts, innerbuf);
 }
 
 //---------------------------------------------------------
@@ -235,11 +302,22 @@ const char *ns_to_str(uint64_t ns)
  * (length must be TIMEBUFLEN) \n
  * (example: char innerbuf[TIMEBUFLEN]) \n
  * (maybe null)
+ * @param nz
  * @return time string
  * @return either inner 'innerbuf' or pointer to 'out'
  */
-const char *timespec_to_str(const struct timespec *ts, char *out)
+static const char *timespec_to_str_nz(const struct timespec *ts, char *out, int nz)
 {
+    int divider = 1000;
+    if (nz != 3 && nz != 6) {
+        nz = 3;
+    }
+    if (nz == 3) {
+        divider = 1000000;
+    } else if (nz == 6) {
+        divider = 1000;
+    }
+
     char *ptr = out;
     if (!ptr) {
         ptr = innerbuf;
@@ -255,25 +333,37 @@ const char *timespec_to_str(const struct timespec *ts, char *out)
     if (days == 0) {
         if (hours == 0) {
             if (mins == 0) {
-                snprintf(ptr, TIMEBUFLEN, "%ld.%06ld", secs, ts->tv_nsec / 1000);
+                snprintf(ptr, TIMEBUFLEN, "%ld.%0*ld", secs, nz, ts->tv_nsec / divider);
             } else {
-                snprintf(ptr, TIMEBUFLEN, "%02ld:%02ld.%06ld", mins, secs, ts->tv_nsec / 1000);
+                snprintf(ptr, TIMEBUFLEN, "%02ld:%02ld.%0*ld", mins, secs, nz, ts->tv_nsec / divider);
             }
         } else {
-            snprintf(ptr, TIMEBUFLEN, "%02ld:%02ld:%02ld.%06ld", hours, mins, secs, ts->tv_nsec / 1000);
+            snprintf(ptr, TIMEBUFLEN, "%02ld:%02ld:%02ld.%0*ld", hours, mins, secs, nz, ts->tv_nsec / divider);
         }
     } else {
         static struct tm tm;
         if (gmt_time((time_t *) &ts->tv_sec, &tm)) {
             char bf[32];
             strftime(bf, sizeof(bf), "%H:%M:%S", &tm);
-            snprintf(ptr, TIMEBUFLEN, "%s.%06ld", bf, ts->tv_nsec / 1000);
+            snprintf(ptr, TIMEBUFLEN, "%s.%0*ld", bf, nz, ts->tv_nsec / 1000);
         } else {
-            snprintf(ptr, TIMEBUFLEN, "%02ld(days):%02ld:%02ld:%02ld.%06ld", days, hours, mins, secs,
-                     ts->tv_nsec / 1000);
+            snprintf(ptr, TIMEBUFLEN, "%02ld(days):%02ld:%02ld:%02ld.%0*ld", days, hours, mins, secs,
+                     nz, ts->tv_nsec / divider);
         }
     }
     return ptr;
+}
+
+//---------------------------------------------------------
+inline const char *timespec_to_str_03(const struct timespec *ts, char *out)
+{
+    return timespec_to_str_nz(ts, out, 3);
+}
+
+//---------------------------------------------------------
+inline const char *timespec_to_str_06(const struct timespec *ts, char *out)
+{
+    return timespec_to_str_nz(ts, out, 6);
 }
 
 //---------------------------------------------------------
@@ -421,17 +511,17 @@ bool test_diff_timespec()
         int minus;
     };
     struct num_t nums[] = {
-        {{0, 500000000}, {1, 200000000}, {0, 700000000}, 1},
-        {{0, 500000000}, {1, 800000000}, {1, 300000000}, 1},
-        {{0, 300000000}, {1, 700000000}, {1, 400000000}, 1},
-        {{0, 300000000}, {0, 500000000}, {0, 200000000}, 1},
-        {{2, 300000000}, {5, 500000000}, {3, 200000000}, 1},
-        {{2, 500000000}, {5, 300000000}, {2, 800000000}, 1},
-        {{1, 500000000}, {2, 300000000}, {0, 800000000}, 1},
-        {{1, 500000000}, {1, 300000000}, {0, 200000000}, 0},
-        {{1, 300000000}, {1, 500000000}, {0, 200000000}, 1},
-        {{2, 500000000}, {1, 800000000}, {0, 700000000}, 0},
-        {{2, 500000000}, {1, 200000000}, {1, 300000000}, 0},
+            {{0, 500000000}, {1, 200000000}, {0, 700000000}, 1},
+            {{0, 500000000}, {1, 800000000}, {1, 300000000}, 1},
+            {{0, 300000000}, {1, 700000000}, {1, 400000000}, 1},
+            {{0, 300000000}, {0, 500000000}, {0, 200000000}, 1},
+            {{2, 300000000}, {5, 500000000}, {3, 200000000}, 1},
+            {{2, 500000000}, {5, 300000000}, {2, 800000000}, 1},
+            {{1, 500000000}, {2, 300000000}, {0, 800000000}, 1},
+            {{1, 500000000}, {1, 300000000}, {0, 200000000}, 0},
+            {{1, 300000000}, {1, 500000000}, {0, 200000000}, 1},
+            {{2, 500000000}, {1, 800000000}, {0, 700000000}, 0},
+            {{2, 500000000}, {1, 200000000}, {1, 300000000}, 0},
     };
     int numslen = sizeof(nums) / sizeof(nums[0]);
     int minus;
@@ -530,33 +620,26 @@ struct timespec *timespec_add(struct timespec *ts_sum, const struct timespec *ts
 {
     ts_sum->tv_sec += ts_add->tv_sec;
     ts_sum->tv_nsec += ts_add->tv_nsec;
-    if (ts_sum->tv_nsec > 999999999) {
+    if (ts_sum->tv_nsec >= 1000000000L) {
         ts_sum->tv_sec++;
-        ts_sum->tv_nsec -= 999999999;
+        ts_sum->tv_nsec -= 1000000000L;
     }
     return ts_sum;
 }
 
 //---------------------------------------------------------
-struct timespec *timespec_add_ns(struct timespec *ts, long nsecs_to_add)
+struct timespec *timespec_add_ns(struct timespec *ts, const long nsecs_to_add)
 {
     ts->tv_nsec += nsecs_to_add;
-    if (ts->tv_nsec > 999999999) {
+    if (ts->tv_nsec >= 1000000000L) {
         ts->tv_sec++;
-        ts->tv_nsec -= 999999999;
+        ts->tv_nsec -= 1000000000L;
     }
-#if 0
-    uint64_t ns = (uint64_t) ts->tv_sec * 1000000000;
-    ns += (uint64_t) ts->tv_nsec;
-    ns += nsecs_to_add;
-    ts->tv_sec = (time_t) (ns / (uint64_t) 1000000000);
-    ts->tv_nsec = (int32_t) (ns - (ts->tv_sec * 1000000000));
-#endif
     return ts;
 }
 
 //---------------------------------------------------------
-struct timespec *timespec_add_ms(struct timespec *ts, long nsecs_to_add)
+struct timespec *timespec_add_ms(struct timespec *ts, const long nsecs_to_add)
 {
     return timespec_add_ns(ts, nsecs_to_add * 1000000);
 }

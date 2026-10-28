@@ -32,85 +32,74 @@ const char *msg_esz7_not_loaded = "it seems 'esz7' module was not loaded before 
  * @note Переменная глобальной видимости.
  */
 static cfg_t m_cfg = {
-    .logfname = "/var/log/esz7.log",
-    .mode = MODE_UNKN,
-    .do_dump = MODE_UNKN,
-    .decimal = DECIMAL_DOT,
-    .locale = "en_US",
-    .lang_cli = "en",
-    .lang_srv = "en",
-    .system_units = UnitsMetric,
-    .cmd_port = DEF_ESZ7_CMD_PORT,
-    .dpt_delay = 0,
-    .swap_channels12 = 0,
+        .logfname = "/var/log/esz7.log",
+        .mode = MODE_UNKN,
+        .do_dump = MODE_UNKN,
+        .decimal = DECIMAL_DOT,
+        .locale = "en_US",
+        .lang_cli = "en",
+        .lang_srv = "en",
+        .system_units = UnitsMetric,
+        .cmd_port = DEF_ESZ7_CMD_PORT,
+        .dpt_delay = 0,
+        .swap_channels12 = 0,
 
-    // --- ATLAS ---
-    .atlas_host1 = {0},
-    .atlas_port11 = 0,
-    .atlas_port12 = 0,
+        // --- ATLAS ---
+        .atlas_host = {},
+        .atlas_serno = DEF_ATLAS_SERNO,
+        .atlas_proto_ver = 0,
 
-    .atlas_host2 = {0},
-    .atlas_port21 = 0,
-    .atlas_port22 = 0,
+        .adc_atlas.fpgafreq = 100000000, // Gz
 
-    .atlas_host3 = {0},
-    .atlas_port31 = 0,
-    .atlas_port32 = 0,
+        .adc_atlas.reg_mode0 = MODE0_ATLAS_DEF,
+        .adc_atlas.reg_mode1 = MODE1_ATLAS_DEF,
+        .adc_atlas.reg_mode3 = MODE3_ATLAS_DEF,
+        .adc_atlas.reg_mode4 = MODE4_ATLAS_DEF,
+        .adc_atlas.reg_ref = REF_ATLAS_DEF,
+        .adc_atlas.scanperiod = 0,
 
-    .atlas_serno = DEF_ATLAS_SERNO,
-    .atlas_proto_ver = 0,
+        // --- APS ---
+        .ads_serno = DEF_ADS_SERNO,
+        .ads_cmd_port = DEF_ADS_PORT_CMD,
+        .ads_data_port = DEF_ADS_PORT_DATA,
 
-    .adc_atlas.fpgafreq = 100000000, // Gz
+        .siu_serno = DEF_SIU2_SERNO,
+        .siu_cmd_port = DEF_SIU2_PORT_CMD,
+        .siu_data_port = DEF_SIU2_PORT_DATA,
+        .sensor_connected[0] = true, // PRES1AVAIL
+        .sensor_connected[1] = true, // PRES2AVAIL
+        .sensor_connected[2] = true, // HKLDAVAIL
 
-    .adc_atlas.reg_mode0 = MODE0_ATLAS_DEF,
-    .adc_atlas.reg_mode1 = MODE1_ATLAS_DEF,
-    .adc_atlas.reg_mode3 = MODE3_ATLAS_DEF,
-    .adc_atlas.reg_mode4 = MODE4_ATLAS_DEF,
-    .adc_atlas.reg_ref = REF_ATLAS_DEF,
-    .adc_atlas.scanperiod = 0,
+        .dtr_serno = DEF_DTR_SERNO,
+        .dtr_cmd_port = DEF_DTR_PORT_CMD,
+        .dtr_data_port = DEF_DTR_PORT_DATA,
 
-    // --- APS ---
-    .ads_serno = DEF_ADS_SERNO,
-    .ads_cmd_port = DEF_ADS_PORT_CMD,
-    .ads_data_port = DEF_ADS_PORT_DATA,
+        .adc_aps.reg_mode0 = MODE0_ADS_DEF,
+        .adc_aps.reg_mode1 = MODE1_ADS_DEF,
+        .adc_aps.reg_mode3 = MODE3_ADS_DEF,
+        .adc_aps.reg_mode4 = MODE4_ADS_DEF,
+        .adc_aps.reg_ref = REF_ADS_DEF,
+        .adc_aps.scanperiod = 0,
 
-    .siu_serno = DEF_SIU2_SERNO,
-    .siu_cmd_port = DEF_SIU2_PORT_CMD,
-    .siu_data_port = DEF_SIU2_PORT_DATA,
-    .sensor_connected[0] = true, // PRES1AVAIL
-    .sensor_connected[1] = true, // PRES2AVAIL
-    .sensor_connected[2] = true, // HKLDAVAIL
+        .adc_aps.fpgafreq = 100000000, // Gz
+        .pressure[0].max_scale = 6000, // psi
+        .pressure[0].pumps_min = 200,
+        .pressure[0].pumps_max = 1000,
+        .pressure[0].pumps_on_threshold = 100,
 
-    .dtr_serno = DEF_DTR_SERNO,
-    .dtr_cmd_port = DEF_DTR_PORT_CMD,
-    .dtr_data_port = DEF_DTR_PORT_DATA,
+        .pressure[1].max_scale = 6000, // psi
+        .pressure[1].pumps_min = 200,
+        .pressure[1].pumps_max = 1000,
+        .pressure[1].pumps_on_threshold = 100,
 
-    .adc_aps.reg_mode0 = MODE0_ADS_DEF,
-    .adc_aps.reg_mode1 = MODE1_ADS_DEF,
-    .adc_aps.reg_mode3 = MODE3_ADS_DEF,
-    .adc_aps.reg_mode4 = MODE4_ADS_DEF,
-    .adc_aps.reg_ref = REF_ADS_DEF,
-    .adc_aps.scanperiod = 0,
+        // --- ATLAS WITS ---
+        .wits_host = {0},
+        .wits_port = 0,
 
-    .adc_aps.fpgafreq = 100000000, // Gz
-    .pressure[0].max_scale = 6000, // psi
-    .pressure[0].pumps_min = 200,
-    .pressure[0].pumps_max = 1000,
-    .pressure[0].pumps_on_threshold = 100,
-
-    .pressure[1].max_scale = 6000, // psi
-    .pressure[1].pumps_min = 200,
-    .pressure[1].pumps_max = 1000,
-    .pressure[1].pumps_on_threshold = 100,
-
-    // --- ATLAS WITS ---
-    .wits_host = {0},
-    .wits_port = DEF_WITS_PORT,
-
-    // --- APS WITS ---
-    .aps_wits_host = {0},
-    .aps_wits_port = DEF_WITS_PORT,
-    .aps_wits_serno = DEF_WITS_SERNO,
+        // --- APS WITS ---
+        .aps_wits_host = {0},
+        .aps_wits_port = DEF_WITS_PORT,
+        .aps_wits_serno = DEF_WITS_SERNO,
 };
 
 //---------------------------------------------------------
@@ -128,16 +117,16 @@ static void usage(char *av[])
 {
     printf("\nUsage: %s  [options] [-d <max_npnts>] [-v] [-h]\n", basename(av[0]));
     printf("Параметры:\n"
-        "    -m, --mode <1..2>         - режим работы (1 - Atlas, 2 - APS)\n"
-        "    -t, --test [1..3]         - вывод данных на каналах\n"
-        "                                1 - буфер sram , 2 - готовые данные, 3 - средние\n"
-        "    -c, --channel [1..4]      - номер канала для отображения в тестах\n"
-        "    -s, --scan <ticks/100MHz> - период опроса АЦП (в тиках)\n"
-        "        --dump                - сохранение готовых пакетов в файл\n"
-        "    -d <1-5>                  - отладочный вывод в терминал\n"
-        "    -h                        - справка\n"
-        "    -v                        - версия\n"
-        "\n");
+            "    -m, --mode <1..2>         - режим работы (1 - Atlas, 2 - APS)\n"
+            "    -t, --test [1..3]         - вывод данных на каналах\n"
+            "                                1 - буфер sram , 2 - готовые данные, 3 - средние\n"
+            "    -c, --channel [1..4]      - номер канала для отображения в тестах\n"
+            "    -s, --scan <ticks/100MHz> - период опроса АЦП (в тиках)\n"
+            "        --dump                - сохранение готовых пакетов в файл\n"
+            "    -d <1-5>                  - отладочный вывод в терминал\n"
+            "    -h                        - справка\n"
+            "    -v                        - версия\n"
+            "\n");
     printf("см. %s.cfg для настройки рабочей конфигурации\n\n", basename(av[0]));
 }
 
@@ -179,7 +168,6 @@ void parse_help_args(int ac, char *av[])
             }
             debug_level = strtol(av[i + 1], NULL, 10);
             ++i;
-            continue;
         }
     }
 }
@@ -341,7 +329,7 @@ static bool cfg_create_default_atlas(const char *fname)
              "# It will be recreated the next time app launch.\n"
              "#"
              "\n"
-             "host1=192.168.1.31        # адрес куда отправлять UDP данные\n"
+             "host1=                    # адрес куда отправлять UDP данные\n"
              "port11=%-5d              # порт #1 для отправки\n"
              "port12=%-5d              # порт #2 для отправки\n"
              "\n"
@@ -353,7 +341,7 @@ static bool cfg_create_default_atlas(const char *fname)
              "port31=%-5d              # порт #1 для отправки\n"
              "port32=%-5d              # порт #2 для отправки\n"
              "\n"
-             "wits_port=%-5d           # WITS Network \n"
+             "wits_port=0               # WITS Network \n"
              "\n"
              "proto_ver=1               # 1 - pressure 1/2 + hookload, 2 - 1/2, ch:4, hkld\n"
              "\n"
@@ -362,6 +350,7 @@ static bool cfg_create_default_atlas(const char *fname)
              "# and should not be used unless you know what they are for.\n"
              "\n"
              "adc_ref=%0.4f\n"
+             "adc_negative=%d\n"
              "\n"
              "# reg_mode0=0x%02X\n"
              "# reg_mode1=0x%02X\n"
@@ -381,8 +370,8 @@ static bool cfg_create_default_atlas(const char *fname)
              DEF_ATLAS_PORT + 1,
              DEF_ATLAS_PORT,
              DEF_ATLAS_PORT + 1,
-             DEF_WITS_PORT,
              m_cfg.adc_ref,
+             m_cfg.adc_use_negative,
              m_cfg.adc_atlas.reg_mode0,
              m_cfg.adc_atlas.reg_mode1,
              m_cfg.adc_atlas.reg_mode3,
@@ -429,7 +418,7 @@ static bool cfg_create_default_aps(const char *fname)
              "dtr_cmd_port=%-5d         # Depth Tracker command port \n"
              "dtr_data_port=%-5d        # Depth Tracker data port\n"
              "\n"
-             "wits_port=%-5d            # WITS Network \n"
+             "wits_port=%-5d             # WITS Network \n"
              "\n"
              "SystemUnits=M              # M or E (Metric/English)\n"
              "Decimal=dot                # decimal delimiter (dot or comma)\n"
@@ -438,6 +427,7 @@ static bool cfg_create_default_aps(const char *fname)
              "# DO NOT EDIT!\n"
              "\n"
              "adc_ref=%0.4f\n"
+             "adc_negative=%d\n"
              "\n"
              "# reg_mode0=0x%02X\n"
              "# reg_mode1=0x%02X\n"
@@ -470,8 +460,8 @@ static bool cfg_create_default_aps(const char *fname)
              DEF_DTR_PORT_CMD,
              DEF_DTR_PORT_DATA,
              DEF_WITS_PORT,
-
              m_cfg.adc_ref,
+             m_cfg.adc_use_negative,
              m_cfg.adc_aps.reg_mode0,
              m_cfg.adc_aps.reg_mode1,
              m_cfg.adc_aps.reg_mode3,
@@ -489,7 +479,7 @@ static bool cfg_create_default_aps(const char *fname)
              m_cfg.pressure[1].pumps_min,
              m_cfg.pressure[1].pumps_max,
              m_cfg.pressure[1].pumps_on_threshold
-    );
+            );
     size_t nwrote = fwrite(buf, strlen(buf), 1, fp);
     fclose(fp);
     return (nwrote == 1 ? OK : FAIL);
@@ -723,8 +713,15 @@ static void cfg_parse_params_for_adc(adc_cfg_t *adc_cfg, const char *param, cons
         const double v = strtod(str, NULL);
         if (errno == 0) {
             m_cfg.adc_ref = v;
-            m_cfg.adc_scale = v / (double)((1u << 23u) - 1u);
+            m_cfg.adc_scale = v / (double) ((1u << 23u) - 1u);
         }
+    } else if (strcasecmp(param, "adc_negative") == 0) {
+        errno = 0;
+        int v = strtol(str, NULL, 10);
+        if (errno != 0) {
+            v = 0;
+        }
+        m_cfg.adc_use_negative = v;
     }
 }
 
@@ -812,25 +809,29 @@ static void cfg_parse_params(char *text, work_mode_t mode)
         }
 
         //---------------------------------------
+        size_t host_name_size = sizeof(m_cfg.atlas_host[0].name) - 1;
         if (mode == MODE_ATLAS) {
             if (strcasecmp(param, "host1") == 0) {
-                strncpy(m_cfg.atlas_host1, str, sizeof(m_cfg.atlas_host1) - 1);
+                strncpy(m_cfg.atlas_host[0].name, str, host_name_size);
             } else if (strcasecmp(param, "port11") == 0) {
-                m_cfg.atlas_port11 = (int) strtol(str, NULL, 10);
+                m_cfg.atlas_host[0].port1 = (int) strtol(str, NULL, 10);
             } else if (strcasecmp(param, "port12") == 0) {
-                m_cfg.atlas_port12 = (int) strtol(str, NULL, 10);
+                m_cfg.atlas_host[0].port2 = (int) strtol(str, NULL, 10);
+
             } else if (strcasecmp(param, "host2") == 0) {
-                strncpy(m_cfg.atlas_host2, str, sizeof(m_cfg.atlas_host2) - 1);
+                strncpy(m_cfg.atlas_host[1].name, str, host_name_size);
             } else if (strcasecmp(param, "port21") == 0) {
-                m_cfg.atlas_port21 = (int) strtol(str, NULL, 10);
+                m_cfg.atlas_host[1].port1 = (int) strtol(str, NULL, 10);
             } else if (strcasecmp(param, "port22") == 0) {
-                m_cfg.atlas_port22 = (int) strtol(str, NULL, 10);
+                m_cfg.atlas_host[1].port2 = (int) strtol(str, NULL, 10);
+
             } else if (strcasecmp(param, "host3") == 0) {
-                strncpy(m_cfg.atlas_host3, str, sizeof(m_cfg.atlas_host3) - 1);
+                strncpy(m_cfg.atlas_host[2].name, str, host_name_size);
             } else if (strcasecmp(param, "port31") == 0) {
-                m_cfg.atlas_port31 = (int) strtol(str, NULL, 10);
+                m_cfg.atlas_host[2].port1 = (int) strtol(str, NULL, 10);
             } else if (strcasecmp(param, "port32") == 0) {
-                m_cfg.atlas_port32 = (int) strtol(str, NULL, 10);
+                m_cfg.atlas_host[2].port2 = (int) strtol(str, NULL, 10);
+
             } else if (strcasecmp(param, "proto_ver") == 0) {
                 m_cfg.atlas_proto_ver = (int) strtol(str, NULL, 10);
             } else {
@@ -1001,20 +1002,24 @@ void cfg_print_configuration()
 
     if (m_cfg.mode == MODE_ATLAS) {
         DBGF(1, "cfg.atlas_serno:        %s", m_cfg.atlas_serno);
-        DBGF(1, "cfg.atlas_host1:        %s", m_cfg.atlas_host1);
-        DBGF(1, "cfg.atlas_port11:       %u", m_cfg.atlas_port11);
-        DBGF(1, "cfg.atlas_port21:       %u", m_cfg.atlas_port12);
-        DBGF(1, "cfg.atlas_host2:        %s", m_cfg.atlas_host2);
-        DBGF(1, "cfg.atlas_port21:       %u", m_cfg.atlas_port21);
-        DBGF(1, "cfg.atlas_port22:       %u", m_cfg.atlas_port22);
-        DBGF(1, "cfg.atlas_host3:        %s", m_cfg.atlas_host3);
-        DBGF(1, "cfg.atlas_port31:       %u", m_cfg.atlas_port31);
-        DBGF(1, "cfg.atlas_port32:       %u", m_cfg.atlas_port32);
+        DBGF(1, "cfg.atlas_host1:        %s", m_cfg.atlas_host[0].name);
+        DBGF(1, "cfg.atlas_port11:       %u", m_cfg.atlas_host[0].port1);
+        DBGF(1, "cfg.atlas_port21:       %u", m_cfg.atlas_host[0].port2);
+
+        DBGF(1, "cfg.atlas_host2:        %s", m_cfg.atlas_host[1].name);
+        DBGF(1, "cfg.atlas_port21:       %u", m_cfg.atlas_host[1].port1);
+        DBGF(1, "cfg.atlas_port22:       %u", m_cfg.atlas_host[1].port2);
+
+        DBGF(1, "cfg.atlas_host3:        %s", m_cfg.atlas_host[2].name);
+        DBGF(1, "cfg.atlas_port31:       %u", m_cfg.atlas_host[2].port1);
+        DBGF(1, "cfg.atlas_port32:       %u", m_cfg.atlas_host[2].port2);
+
         DBGF(1, "cfg.atlas_timeshift:    %u", m_cfg.atlas_timeshift);
         DBGF(1, "cfg.wits_port:          %u", m_cfg.wits_port);
 
         DBGF(1, "cfg.atlas.ref:          %0.04f", m_cfg.adc_ref);
         DBGF(1, "cfg.atlas.scale_factor: %0.20f", m_cfg.adc_scale);
+        DBGF(1, "cfg.atlas.negative:     %d    ", m_cfg.adc_use_negative);
         DBGF(1, "cfg.atlas_reg_mode0:    0x%02X", m_cfg.adc_atlas.reg_mode0);
         DBGF(1, "cfg.atlas_reg_mode1:    0x%02X", m_cfg.adc_atlas.reg_mode1);
         DBGF(1, "cfg.atlas_reg_mode3:    0x%02X", m_cfg.adc_atlas.reg_mode3);
@@ -1060,6 +1065,7 @@ void cfg_print_configuration()
 
         DBGF(1, "cfg.aps.ref:            %0.04f", m_cfg.adc_ref);
         DBGF(1, "cfg.aps.scale_factor:   %0.20f", m_cfg.adc_scale);
+        DBGF(1, "cfg.atlas.negative:     %d    ", m_cfg.adc_use_negative);
         DBGF(1, "cfg.aps_reg_mode0:      0x%02X", m_cfg.adc_aps.reg_mode0);
         DBGF(1, "cfg.aps_reg_mode1:      0x%02X", m_cfg.adc_aps.reg_mode1);
         DBGF(1, "cfg.aps_reg_mode3:      0x%02X", m_cfg.adc_aps.reg_mode3);
@@ -1146,8 +1152,8 @@ bool cfg_read_esz7_status()
 
     // список искомыз параметров
     const char *param[] = {
-        "dpt_delay",
-        "swap_ch12"
+            "dpt_delay",
+            "swap_ch12"
     };
     size_t param_size = sizeof(param) / sizeof(param[0]);
 

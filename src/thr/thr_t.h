@@ -46,6 +46,7 @@ typedef enum thr_type_t : uint8_t
 {
     THR_TYPE_UNKN = 0,
     THR_TYPE_CORE,
+    THR_TYPE_HEARTBEAT,
     THR_TYPE_ATLAS,
     THR_TYPE_WITS,
     THR_TYPE_WITS_CLIENT,

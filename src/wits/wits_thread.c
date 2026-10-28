@@ -32,8 +32,8 @@ static bool wits_send_data_to_client(thr_t *thr, void *data, socket_t *sock)
 
     // send points
     if (!wits->packet.bytes || wits->packet.nbytes == 0) {
-        LOG(ERROR, "505: INTERNAL ERROR: Nothing to send");
-        DBG(0, "\n505: INTERNAL ERROR: Nothing to send\n");
+        LOG(ERROR, "500: INTERNAL ERROR: Nothing to send");
+        DBG(0, "\n500: INTERNAL ERROR: Nothing to send\n");
         pthread_mutex_unlock(&thr->mutex);
         return OK;
     }
@@ -43,16 +43,16 @@ static bool wits_send_data_to_client(thr_t *thr, void *data, socket_t *sock)
 
     const int ret = socket_send(sock, wits->packet.bytes, wits->packet.nbytes);
     if (ret == -1) {
-        LOG(ERROR, "%s (cli_fd:%d) - send failed - '%s'", sock->name, sock->fd, socket_strerror(sock->err));
-        DBGF(0, "%s (cli_fd:%d) - send failed - '%s'", sock->name, sock->fd, socket_strerror(sock->err));
+        LOG(ERROR, "%s (cli_fd:%02d) - send failed - '%s'", sock->name, sock->fd, socket_strerror(sock->err));
+        DBGF(0, "%s (cli_fd:%02d) - send failed - '%s'", sock->name, sock->fd, socket_strerror(sock->err));
         if (sock->err != EPIPE && sock->err != ECONNRESET) {
             ;
         }
-        wits->stat.send_error++;
+        wits->send_error++;
         pthread_mutex_unlock(&thr->mutex);
         return FAIL;
     }
-    wits->stat.send_ok++;
+    wits->send_ok++;
     DBGF(5, "%s (cli_fd:%d) - sent %d bytes to %s:%d", sock->name, sock->fd,
          ret, inet_ntoa(sock->sockaddrin.sin_addr), sock->port);
     pthread_mutex_unlock(&thr->mutex);
@@ -113,8 +113,13 @@ int wits_thread_start(thr_t *thr)
     DBGF(3, "[tid:%08lX] --- %s (%s) going to be started...",
          pthread_self(), thr->name, thr_type_to_string(thr->type));
 
-
     wits_t *wits = thr->payload;
+    if (wits->port == 0) {
+        LOG(INFO, "%s port is zero - start canceled", thr->name);
+        DBGF(1, "[tid:%08lX] --- finished %s", pthread_self(), thr->name);
+        return 0;
+    }
+
     wits->sock.port = wits->port;
     socket_t *sock = &wits->sock;
     snprintf(sock->name, sizeof(sock->name), "%s", thr->name);
@@ -125,7 +130,7 @@ int wits_thread_start(thr_t *thr)
             if (thr->shuttingdown) {
                 break;
             }
-            ssleep(TS_1SEC * 2);
+            ssleep(2);
             continue;
         }
 
@@ -150,7 +155,7 @@ int wits_thread_start(thr_t *thr)
         } while (!thr->shuttingdown);
     } while (!thr->shuttingdown);
 
-    DBGF(3, "[tid:%08lX] --- finished %s %s:%d",
-         pthread_self(), thr->name, basename(__FILE__), __LINE__);
+    DBGF(3, "[tid:%08lX] %s:%d", pthread_self(), basename(__FILE__), __LINE__);
+    DBGF(3, "[tid:%08lX] --- finished %s", pthread_self(), thr->name);
     return 0;
 }

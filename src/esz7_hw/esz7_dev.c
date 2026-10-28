@@ -180,13 +180,13 @@ void esz7_setup()
 }
 
 //---------------------------------------------------------
-static void print_adc_registers(int channel)
+static void print_adc_registers(const int channel)
 {
     // channel: 1..4
-    uint8_t reg_num, value;
-    uint8_t regs[] = {0, 1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 16, 17, 18};
+    uint8_t value;
+    const uint8_t regs[] = {0, 1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 16, 17, 18};
     for (int i = 0; i < (int) sizeof(regs); i++) {
-        reg_num = regs[i];
+        const uint8_t reg_num = regs[i];
         if (read_adc_register(channel, reg_num, &value)) {
             DBGF(debug_level, "ADC-%d RegNo %2Xh - 0x%02X %s\n", channel, reg_num, value, print_response_details(reg_num, value));
         } else {

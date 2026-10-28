@@ -21,7 +21,7 @@ bool wsa_startup();
 void wsa_cleanup();
 
 int set_socket_errno(socket_t *sock);
-int socket_errno(socket_t *sock);
+int socket_errno(const socket_t *sock);
 const char *socket_strerror(int err);
 
 #ifdef __cplusplus

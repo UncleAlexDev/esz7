@@ -1,5 +1,5 @@
 /**
-  \file   cmd_thread.c
+  \file   cmd.c
   \author Aleksey Lekhtin
   \date   04.05.2024
   \brief  The ESZ7 command server
@@ -435,6 +435,10 @@ static int thread_start(thr_t *thr)
 //---------------------------------------------------------
 bool core_cmd_run()
 {
+    if (cfg()->test_mode) {
+        return true;
+    }
+
     m_core_cmd.port = cfg()->cmd_port;
 
     thr_prop_t thr_prop = {

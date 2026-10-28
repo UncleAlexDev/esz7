@@ -158,7 +158,7 @@ do { \
         int ret = nanosleep(reqtime, NULL); \
         if (ret == -1) { \
             int e = errno; \
-            DBGF(0, "505: INTERNAL ERROR: %s:%d failed - (%d), %s", __func__, __LINE__, e, strerror(e)); \
+            DBGF(0, "500: INTERNAL ERROR: %s:%d failed - (%d), %s", __func__, __LINE__, e, strerror(e)); \
         } \
     } \
 } while(0)

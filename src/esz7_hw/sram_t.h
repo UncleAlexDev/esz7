@@ -18,8 +18,6 @@
 
 #define SRAM_MAX_RECS 512
 
-#include "esz7_regs.h"
-
 typedef struct CtrlMem_t
 {
     uint32_t GvnLenBuf     : 9;     // 8..0     Given Len of Buffer - max 511(0x1ff) records

@@ -120,16 +120,16 @@ static bool aps_wits_send_to_client(thr_t *thr, const aps_wits_t *wits, socket_t
 
     // send points
     if (!wits->packet.bytes || wits->packet.nbytes == 0) {
-        LOG(ERROR, "505: INTERNAL ERROR: Nothing to send");
-        DBG(0, "\n505: INTERNAL ERROR: Nothing to send\n");
+        LOG(ERROR, "500: INTERNAL ERROR: Nothing to send");
+        DBG(0, "\n500: INTERNAL ERROR: Nothing to send\n");
         pthread_mutex_unlock(&thr->mutex);
         return FAIL;
     }
 
     int ret = socket_send(sock, wits->packet.bytes, wits->packet.nbytes);
     if (ret == -1) {
-        LOG(ERROR, "%s (cli_fd:%d) - send failed - '%s'", sock->name, sock->fd, socket_strerror(sock->err));
-        DBGF(0, "%s (cli_fd:%d) - send failed - '%s'", sock->name, sock->fd, socket_strerror(sock->err));
+        LOG(ERROR, "%s (cli_fd:%02d) - send failed - '%s'", sock->name, sock->fd, socket_strerror(sock->err));
+        DBGF(0, "%s (cli_fd:%02d) - send failed - '%s'", sock->name, sock->fd, socket_strerror(sock->err));
         if (sock->err != EPIPE && sock->err != ECONNRESET) {
             ;
         }

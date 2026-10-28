@@ -120,16 +120,16 @@ static bool siu_data_send_to_client(thr_t *thr, const siu_t *siu, socket_t *sock
 
     // send points
     if (!siu->packet.bytes || siu->packet.nbytes == 0) {
-        LOG(ERROR, "505: INTERNAL ERROR: Nothing to send");
-        DBG(0, "\n505: INTERNAL ERROR: Nothing to send\n");
+        LOG(ERROR, "500: INTERNAL ERROR: Nothing to send");
+        DBG(0, "\n500: INTERNAL ERROR: Nothing to send\n");
         pthread_mutex_unlock(&thr->mutex);
         return FAIL;
     }
 
     int ret = socket_send(sock, siu->packet.bytes, siu->packet.nbytes);
     if (ret == -1) {
-        LOG(ERROR, "%s (cli_fd:%d) - send failed - '%s'", sock->name, sock->fd, socket_strerror(sock->err));
-        DBGF(0, "%s (cli_fd:%d) - send failed - '%s'", sock->name, sock->fd, socket_strerror(sock->err));
+        LOG(ERROR, "%s (cli_fd:%02d) - send failed - '%s'", sock->name, sock->fd, socket_strerror(sock->err));
+        DBGF(0, "%s (cli_fd:%02d) - send failed - '%s'", sock->name, sock->fd, socket_strerror(sock->err));
         if (sock->err != EPIPE && sock->err != ECONNRESET) {
             ;
         }

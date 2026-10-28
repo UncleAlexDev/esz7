@@ -202,7 +202,7 @@ void ads_data_create_packet()
          ads()->data.packet.header.filenum,
          points->encoder1,
          points->encoder1,
-         timespec_to_str(&total_file_time, timebuf),
+         timespec_to_str_06(&total_file_time, timebuf),
          ads()->data.packet.header.samplenum,
          between_measurement.tv_sec, between_measurement.tv_nsec / 1000);
 

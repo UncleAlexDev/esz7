@@ -149,7 +149,7 @@ void socket_close_fd(SOCKET *fd)
 {
     pthread_t tid = pthread_self();
     if (fd && *fd != INVALID_SOCKET) {
-        if (*fd == 1 || *fd == 2) {
+        if (*fd == 0 || *fd == 1 || *fd == 2) {
             return; // :)
         }
         DBGF(8, "[tid:%08lX] fd:%d", tid, *fd);
@@ -157,15 +157,15 @@ void socket_close_fd(SOCKET *fd)
         if (ret == -1) {
             int e = errno;
             if (e != ENOTCONN) {
-                LOG(ERROR, "socket shutdown(%d) error (%d) %s", *fd, e, strerror(e));
-                DBGF(0, "ERROR: socket shutdown(%d) error (%d) %s", *fd, e, strerror(e));
+                LOG(ERROR, "socket shutdown(%d) error %s (%d)", *fd, strerror(e), e);
+                DBGF(0, "ERROR: socket shutdown(%d) error %s (%d)", *fd, strerror(e), e);
             }
         }
         ret = closesocket(*fd);
         if (ret == -1) {
             int e = errno;
-            LOG(ERROR, "socket close(%d) error (%d) %s", *fd, e, strerror(e));
-            DBGF(0, "ERROR: socket close(%d) error (%d) %s", *fd, e, strerror(e));
+            LOG(ERROR, "socket close(%d) error %s (%d)", *fd, strerror(e), e);
+            DBGF(0, "ERROR: socket close(%d) error %s (%d)", *fd, strerror(e), e);
         }
         *fd = INVALID_SOCKET;
         DBGF(9, "fd:%d", *fd);
@@ -260,18 +260,18 @@ int socket_recv(socket_t *sock, char *buf, int buflen)
 }
 
 //-----------------------------------------------------------
-int socket_send(socket_t *sock, const char *data, size_t datalen)
+int socket_send(socket_t *sock, const char *data, const size_t datalen)
 {
     if (!data || datalen == 0) {
-        LOG(ERROR, "%s (socket:%d) - WARNING: no obj sent", sock->name, sock->fd);
-        DBGF(0, "%s (socket:%d) - WARNING: no obj sent", sock->name, sock->fd);
+        LOG(ERROR, "%s (socket:%02d) - WARNING: no obj sent", sock->name, sock->fd);
+        DBGF(0, "%s (socket:%02d) - WARNING: no obj sent", sock->name, sock->fd);
         sock->err = EINVAL;
         return -1;
     }
     if (sock->fd == INVALID_SOCKET || sock->fd == 0) {
         sock->err = EINVAL;
-        LOG(ERROR, "%s (socket:%d) - socket is invalid", sock->name, sock->fd);
-        DBGF(0, "%s (socket:%d) - socket is invalid", sock->name, sock->fd);
+        LOG(ERROR, "%s (socket:%02d) - socket is invalid", sock->name, sock->fd);
+        DBGF(0, "%s (socket:%02d) - socket is invalid", sock->name, sock->fd);
         return -1;
     }
 
@@ -284,12 +284,11 @@ int socket_send(socket_t *sock, const char *data, size_t datalen)
         len -= ret;
         if (sock->type == SOCK_DGRAM) {
             // UDP
-            DBGF(5, "sendto(%d, '%s', len: %u) [UDP]", sock->fd, sock->ip, len);
-            ret = sendto(sock->fd, p, len, MSG_NOSIGNAL, (SOCKADDR *) &sock->sockaddrin,
-                         (socklen_t) sizeof(sock->sockaddrin));
+            DBGF(5, "sendto(%02d, '%s', len: %u) [UDP]", sock->fd, sock->ip, len);
+            ret = sendto(sock->fd, p, len, MSG_NOSIGNAL, (SOCKADDR *) &sock->sockaddrin, sizeof(sock->sockaddrin));
         } else if (sock->type == SOCK_STREAM) {
             // TCP
-            DBGF(5, "send(%d, '%s', len: %u) [TCP]", sock->fd, sock->cli_ip, len);
+            DBGF(5, "send(%02d, '%s', len: %u) [TCP]", sock->fd, sock->cli_ip, len);
             ret = send(sock->fd, p, len, MSG_NOSIGNAL);
         } else {
             sock->err = EINVAL;
@@ -301,12 +300,12 @@ int socket_send(socket_t *sock, const char *data, size_t datalen)
             return -1;
         }
         if ((size_t) ret != len) {
-            DBGF(5, "%s (socket:%d) - sent %d bytes", sock->name, sock->fd, ret);
+            DBGF(5, "ERROR: %s sent %d bytes (expected %u)", sock->name, ret, len);
         }
         sent_bytes += ret;
     } while ((size_t) ret != len);
 
-    DBGF(4, "%s (socket:%d) - sent %d bytes to %s:%d", sock->name, sock->fd, ret, inet_ntoa(sock->sockaddrin.sin_addr),
+    DBGF(3, "%s (socket:%02d) - sent %d bytes to %s:%d", sock->name, sock->fd, ret, inet_ntoa(sock->sockaddrin.sin_addr),
          sock->port);
     return sent_bytes;
 }

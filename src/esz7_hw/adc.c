@@ -113,7 +113,7 @@ static bool CmdDirectCommand(AdcRequset_t *req)
         DBGF(9, "fpga state reset - adc_reg_hi: 0x%02X", value);
     }
 
-    if ((req->cmdop & CMDOP_RREG) || (req->cmdop & CMDOP_WREG)) {
+    if (req->cmdop & CMDOP_RREG || req->cmdop & CMDOP_WREG) {
         uint8_t reg_num = 0x7F; // let it be wrong number
         if (req->cmdop & CMDOP_RREG) {
             reg_num = req->cmdop & (~CMDOP_RREG);
@@ -144,9 +144,9 @@ static bool CmdDirectCommand(AdcRequset_t *req)
 
     DBGF(9, "DevCmd::%p <= 0x%08X (%s:%u, ch:%u, cmdop: 0x%02X (%s), obj: 0x%02X, crc: 0x%02X)",
          dev_ctrl_adr, req->cmd.value, CmdOpCodeName(req->cmd.bits.CmdOpCode), req->cmd.bits.CmdOpCode,
-         req->cmd.bits.AdcChannels, (req->cmd.bits.CmdParam >> 0) & 0x00FF,
-         cmd_name(req->cmdop), (req->cmd.bits.CmdParam >> 8) & 0x00FF,
-         (req->cmd.bits.CmdParam >> 16) & 0x00FF);
+         req->cmd.bits.AdcChannels, (req->cmd.bits.CmdParam >> 0u) & 0x00FFu,
+         cmd_name(req->cmdop), (req->cmd.bits.CmdParam >> 8u) & 0x00FFu,
+         (req->cmd.bits.CmdParam >> 16u) & 0x00FFu);
 
     *dev_ctrl_adr = req->cmd;
 
@@ -208,12 +208,12 @@ static bool check_adc_response(AdcRequset_t *req)
         if (resp->bits.EchoCmd != req->cmdop) {
             echo_error = YES;
             snprintf(req->errors, sizeof(req->errors),
-                     "ERROR: Echo CMD  mismatch (0x%02X != 0x%02X)",
+                     "Echo CMD  mismatch (0x%02X != 0x%02X)",
                      resp->bits.EchoCmd, req->cmdop);
         } else if (resp->bits.EchoData != req->data) {
             echo_error = YES;
             snprintf(req->errors, sizeof(req->errors),
-                     "ERROR: Echo DATA mismatch (0x%02X != 0x%02X)",
+                     "Echo DATA mismatch (0x%02X != 0x%02X)",
                      resp->bits.EchoData, req->data);
         } else if (resp->bits.EchoCrc != req->crc) {
             echo_error = YES;
@@ -223,13 +223,13 @@ static bool check_adc_response(AdcRequset_t *req)
                 param[1] = req->data;
                 uint8_t crc = calculateCRC(param, 2);
                 snprintf(req->errors, sizeof(req->errors),
-                         "ERROR: Echo CRC  mismatch (0x%02X != 0x%02X)\n"
-                         "       error in request CRC (0x%02X, expected 0x%02X)",
+                         "Echo CRC  mismatch (0x%02X != 0x%02X)\n"
+                         "error in request CRC (0x%02X, expected 0x%02X)",
                          resp->bits.EchoCrc, req->crc,
                          resp->bits.EchoCrc, crc);
             } else {
                 snprintf(req->errors, sizeof(req->errors),
-                         "ERROR: Echo CRC  mismatch (0x%02X != 0x%02X)",
+                         "Echo CRC  mismatch (0x%02X != 0x%02X)",
                          resp->bits.EchoCrc, req->crc);
             }
         }
@@ -260,7 +260,7 @@ static bool check_adc_response(AdcRequset_t *req)
                 print_AdcResp(resp);
             }
             snprintf(req->errors, sizeof(req->errors),
-                     "ERROR: CRC mismatch (0x%02X != 0x%02X)\n"
+                     "CRC mismatch (0x%02X != 0x%02X)\n"
                      "Verification CRC for '%02X %02X %02X %02X' => 0x%02X",
                      crc, resp->bits.AdcCrcResp, res[0], res[1], res[2], res[3], crc);
         }
@@ -274,7 +274,7 @@ static bool check_adc_response(AdcRequset_t *req)
             }
             snprintf(req->errors, sizeof(req->errors),
                      "Verification CRC for 'Lsb: %02X' => 0x%02X\n"
-                     "ERROR: CRC mismatch (0x%02X != Out CRC:0x%02X)",
+                     "CRC mismatch (0x%02X != Out CRC:0x%02X)",
                      res[0], crc, crc, resp->bits.AdcCrcResp);
         }
     } else if (req->cmdop & CMDOP_WREG) {
@@ -284,7 +284,7 @@ static bool check_adc_response(AdcRequset_t *req)
                 print_AdcResp(resp);
             }
             snprintf(req->errors, sizeof(req->errors),
-                     "ERROR: CRC mismatch (0x%02X != 0x%02X)",
+                     "CRC mismatch (0x%02X != 0x%02X)",
                      resp->bits.EchoData, req->crc);
         }
     } else {
@@ -314,7 +314,7 @@ bool adc_direct_command(AdcRequset_t *req)
 }
 
 //---------------------------------------------------------
-bool read_adc_register(int channel, uint8_t reg_num, uint8_t *value)
+bool read_adc_register(const int channel, const reg_map_t reg_num, uint8_t *value)
 {
     // channel: 1..4
     AdcRequset_t req = {0};
@@ -323,7 +323,9 @@ bool read_adc_register(int channel, uint8_t reg_num, uint8_t *value)
 
     if (!adc_direct_command(&req)) {
         LOG(ERROR, "%s", req.errors);
-        DBGF(0, "\n%s", req.errors);
+        DBGF(0, "[%s] %s", reg_name(reg_num), req.errors);
+        DBGF(0, "ch:%02X cmdop:%02X data:%02X status: %02X",
+            req.channel, req.cmdop, req.data, req.resp.bits.AdcStatus);
         return FAIL;
     }
     if (value) {
@@ -333,7 +335,7 @@ bool read_adc_register(int channel, uint8_t reg_num, uint8_t *value)
 }
 
 //---------------------------------------------------------
-bool write_adc_register(int channel, uint8_t reg_num, uint8_t value)
+bool write_adc_register(const int channel, const reg_map_t reg_num, uint8_t value)
 {
     // channel: 1..4
     AdcRequset_t req = {0};
@@ -732,7 +734,7 @@ void print_AdcResp(const AdcResp_t *resp)
 }
 
 //---------------------------------------------------------
-const char *print_response_details(uint8_t reg_num, uint8_t value)
+const char *print_response_details(const uint8_t reg_num, const uint8_t value)
 {
     static char buf[128];
     buf[0] = '\0';
@@ -743,12 +745,12 @@ const char *print_response_details(uint8_t reg_num, uint8_t value)
     }
 
     if (reg_num == RegStatus0) {
-        uint8_t CRC1 = (value & 0x40) >> 6;
-        uint8_t STAT12 = (value & 0x10) >> 4;
-        uint8_t REFALM = (value & 0x08) >> 4;
-        uint8_t DRDY = (value & 0x04) >> 2;
-        uint8_t CLOCK = (value & 0x02) >> 1;
-        uint8_t RESET = (value & 0x01);
+        const uint8_t CRC1 = (value & 0x40u) >> 6u;
+        const uint8_t STAT12 = (value & 0x10u) >> 4u;
+        const uint8_t REFALM = (value & 0x08u) >> 4u;
+        const uint8_t DRDY = (value & 0x04u) >> 2u;
+        const uint8_t CLOCK = (value & 0x02u) >> 1u;
+        const uint8_t RESET = (value & 0x01u);
         snprintf(buf, sizeof(buf), "%-7s - CRC1:%u, STAT12:%u, REFALM:%u, DRDY:%u, CLOCK:%u, RESET:%u",
                  reg_name(reg_num), CRC1, STAT12, REFALM, DRDY, CLOCK, RESET);
         return buf;
@@ -758,32 +760,32 @@ const char *print_response_details(uint8_t reg_num, uint8_t value)
         return buf;
     }
     if (reg_num == RegStatus2) {
-        uint8_t CRC2 = (value & 0x10) >> 4;
-        uint8_t ID2 = (value & 0x0F);
+        const uint8_t CRC2 = (value & 0x10u) >> 4u;
+        const uint8_t ID2 = value & 0x0Fu;
         snprintf(buf, sizeof(buf), "%-7s - CRC2:%u, REV_ID2:%Xh", reg_name(reg_num), CRC2, ID2);
         return buf;
     }
     if (reg_num == RegMode0) {
-        uint8_t DRT = ((value >> 3) & 0x1F);
-        uint8_t FLT = (value & 0x07);
+        const uint8_t DRT = (value >> 3u) & 0x1Fu;
+        const uint8_t FLT = value & 0x07u;
         snprintf(buf, sizeof(buf), "%-7s - Data Rate: 0x%02X, Filter: 0x%02X", reg_name(reg_num), DRT, FLT);
         return buf;
     }
     if (reg_num == RegMode1) {
-        uint8_t CNV = ((value >> 4) & 0x01);
-        uint8_t DLY = (value & 0x0F);
+        const uint8_t CNV = (value >> 4u) & 0x01u;
+        const uint8_t DLY = (value & 0x0Fu);
         snprintf(buf, sizeof(buf), "%-7s - Conversion Mode:%u (%s), Delay: 0x%02X",
                  reg_name(reg_num), CNV, (CNV == 1 ? "Pulse" : "Conts"), DLY);
         return buf;
     }
     if (reg_num == RegMode3) {
-        uint8_t STATENB = (value >> 6) & 0x01;
+        const uint8_t STATENB = (value >> 6u) & 0x01u;
         snprintf(buf, sizeof(buf), "%-7s - STATENB:%u", reg_name(reg_num), STATENB);
         return buf;
     }
     if (reg_num == RegMode4) {
-        uint8_t MUX = (value >> 4) & 0x07;
-        uint8_t GAIN = (value & 0x0F);
+        const uint8_t MUX = (value >> 4u) & 0x07u;
+        const uint8_t GAIN = (value & 0x0Fu);
         snprintf(buf, sizeof(buf), "%-7s - MUX: 0x%02X (Input %s%s), Gain: 0x%02X",
                  reg_name(reg_num),
                  MUX, (MUX == 0x00 ? "External" : ""),
@@ -791,7 +793,7 @@ const char *print_response_details(uint8_t reg_num, uint8_t value)
         return buf;
     }
     if (reg_num == RegRef) {
-        uint8_t RMUX = (value & 0x0F);
+        const uint8_t RMUX = (value & 0x0Fu);
         snprintf(buf, sizeof(buf), "%-7s - RMUX: 0x%02X (Reference %s%s)",
                  reg_name(reg_num),
                  RMUX, (RMUX == 0x05 ? "AVDD" : ""), (RMUX == 0x0A ? "External" : ""));
@@ -834,32 +836,32 @@ void print_status0(uint8_t status0, char *msg, int msg_len, int shortmsg)
         num = snprintf(msg, msg_len, "STATUS0:0x%02X", status0);
         msg += num;
         msg_len -= num;
-        if (status0 & 0x40) {
+        if (status0 & 0x40u) {
             num = snprintf(msg, msg_len, " CRC1");
             msg += num;
             msg_len -= num;
         }
-        if (status0 & 0x10) {
+        if (status0 & 0x10u) {
             num = snprintf(msg, msg_len, " STAT12");
             msg += num;
             msg_len -= num;
         }
-        if (status0 & 0x08) {
+        if (status0 & 0x08u) {
             num = snprintf(msg, msg_len, " REFALM");
             msg += num;
             msg_len -= num;
         }
-        if (status0 & 0x04) {
+        if (status0 & 0x04u) {
             num = snprintf(msg, msg_len, " DRDY");
             msg += num;
             msg_len -= num;
         }
-        if (status0 & 0x02) {
+        if (status0 & 0x02u) {
             num = snprintf(msg, msg_len, " CLOCK");
             msg += num;
             msg_len -= num;
         }
-        if (status0 & 0x01) {
+        if (status0 & 0x01u) {
             num = snprintf(msg, msg_len, " RESET");
             msg += num;
             msg_len -= num;
@@ -871,32 +873,32 @@ void print_status0(uint8_t status0, char *msg, int msg_len, int shortmsg)
     msg += num;
     msg_len -= num;
 
-    if (status0 & 0x40) {
+    if (status0 & 0x40u) {
         num = snprintf(msg, msg_len, " CRC1:CRC error occurred during commands using CS1, ");
         msg += num;
         msg_len -= num;
     }
-    if (status0 & 0x10) {
+    if (status0 & 0x10u) {
         num = snprintf(msg, msg_len, " STAT12:Error logged in the STATUS1 or STATUS2 registers, ");
         msg += num;
         msg_len -= num;
     }
-    if (status0 & 0x08) {
+    if (status0 & 0x08u) {
         num = snprintf(msg, msg_len, " REFALM:Reference low alarm, ");
         msg += num;
         msg_len -= num;
     }
-    if (status0 & 0x04) {
+    if (status0 & 0x04u) {
         num = snprintf(msg, msg_len, " DRDY:Conversion obj are new from the last obj read, ");
         msg += num;
         msg_len -= num;
     }
-    if (status0 & 0x02) {
+    if (status0 & 0x02u) {
         num = snprintf(msg, msg_len, " CLOCK:ADC clock is external, ");
         msg += num;
         msg_len -= num;
     }
-    if (status0 & 0x01) {
+    if (status0 & 0x01u) {
         snprintf(msg, msg_len, " RESET:Indicates an ADC reset has occurred");
     }
 }
@@ -912,7 +914,7 @@ void print_status1(uint8_t status1, char *msg, int msg_len, int shortmsg)
     if (status1 == 0) {
         return;
     }
-    if (status1 & 0x80) {
+    if (status1 & 0x80u) {
         if (shortmsg) {
             num = snprintf(msg, msg_len, " PGA_ONL");
         } else {
@@ -921,7 +923,7 @@ void print_status1(uint8_t status1, char *msg, int msg_len, int shortmsg)
         msg += num;
         msg_len -= num;
     }
-    if (status1 & 0x40) {
+    if (status1 & 0x40u) {
         if (shortmsg) {
             num = snprintf(msg, msg_len, " PGA_ONH");
         } else {
@@ -930,7 +932,7 @@ void print_status1(uint8_t status1, char *msg, int msg_len, int shortmsg)
         msg += num;
         msg_len -= num;
     }
-    if (status1 & 0x20) {
+    if (status1 & 0x20u) {
         if (shortmsg) {
             num = snprintf(msg, msg_len, "  PGA_OPL");
         } else {
@@ -939,7 +941,7 @@ void print_status1(uint8_t status1, char *msg, int msg_len, int shortmsg)
         msg += num;
         msg_len -= num;
     }
-    if (status1 & 0x10) {
+    if (status1 & 0x10u) {
         if (shortmsg) {
             num = snprintf(msg, msg_len, "  PGA_OPH");
         } else {
@@ -948,7 +950,7 @@ void print_status1(uint8_t status1, char *msg, int msg_len, int shortmsg)
         msg += num;
         msg_len -= num;
     }
-    if (status1 & 0x08) {
+    if (status1 & 0x08u) {
         if (shortmsg) {
             num = snprintf(msg, msg_len, "  PGA_INL");
         } else {
@@ -957,7 +959,7 @@ void print_status1(uint8_t status1, char *msg, int msg_len, int shortmsg)
         msg += num;
         msg_len -= num;
     }
-    if (status1 & 0x04) {
+    if (status1 & 0x04u) {
         if (shortmsg) {
             num = snprintf(msg, msg_len, "  PGA_INH");
         } else {
@@ -966,7 +968,7 @@ void print_status1(uint8_t status1, char *msg, int msg_len, int shortmsg)
         msg += num;
         msg_len -= num;
     }
-    if (status1 & 0x02) {
+    if (status1 & 0x02u) {
         if (shortmsg) {
             num = snprintf(msg, msg_len, "  PGA_IPL");
         } else {
@@ -975,7 +977,7 @@ void print_status1(uint8_t status1, char *msg, int msg_len, int shortmsg)
         msg += num;
         msg_len -= num;
     }
-    if (status1 & 0x01) {
+    if (status1 & 0x01u) {
         if (shortmsg) {
             num = snprintf(msg, msg_len, "  PGA_IPH");
         } else {
@@ -1003,7 +1005,7 @@ void print_status2(uint8_t status2, char *msg, int msg_len, int shortmsg)
         msg_len -= num;
         return;
     }
-    if (status2 & 0x10) {
+    if (status2 & 0x10u) {
         num = snprintf(msg, msg_len, "  CRC2:CRC error occurred during commands with use of CS2");
         msg += num;
         msg_len -= num;
