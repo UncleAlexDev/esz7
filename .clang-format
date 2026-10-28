@@ -1,0 +1,88 @@
+---
+Language: Cpp
+BasedOnStyle: LLVM
+ColumnLimit: 120
+UseTab: Never
+TabWidth: 4
+IndentCaseLabels: true
+IndentWidth: 4
+IndentCaseBlocks: true
+InsertNewlineAtEOF: true
+
+AccessModifierOffset: -4
+
+AlignConsecutiveAssignments:
+  Enabled: true
+  AcrossEmptyLines: false
+  AcrossComments: false
+
+AlignTrailingComments: true
+AlignConsecutiveDeclarations: false
+AlignOperands: Align
+AlwaysBreakTemplateDeclarations: Yes
+BraceWrapping: 
+  AfterCaseLabel: false
+  AfterClass: true
+  AfterControlStatement: Never
+  AfterEnum: true
+  AfterFunction: true
+  AfterNamespace: true
+  AfterStruct: true
+  AfterUnion: true
+  AfterExternBlock: false
+  BeforeCatch: false
+  BeforeElse: false
+  BeforeLambdaBody: false
+  BeforeWhile: false
+  SplitEmptyFunction: true
+  SplitEmptyRecord: true
+  SplitEmptyNamespace: true
+BreakBeforeBraces: Custom
+BreakConstructorInitializers: AfterColon
+BreakConstructorInitializersBeforeComma: false
+
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortCaseLabelsOnASingleLine: false
+
+AlignConsecutiveShortCaseStatements :
+  Enabled: true
+  AcrossEmptyLines: true
+  AcrossComments: true
+  AlignCaseArrows: true
+  AlignCaseColons: false
+
+ConstructorInitializerAllOnOneLineOrOnePerLine: false
+ContinuationIndentWidth: 8
+IncludeCategories: 
+  - Regex: '^<.*'
+    Priority: 1
+  - Regex: '^".*'
+    Priority: 2
+  - Regex: '.*'
+    Priority: 3
+IncludeIsMainRegex: '([-_](test|unittest))?$'
+MacroBlockBegin: ''
+MacroBlockEnd: ''
+NamespaceIndentation: All
+SpaceAfterCStyleCast: true
+SpaceAfterTemplateKeyword: false
+SpaceBeforeRangeBasedForLoopColon: false
+SpaceInEmptyParentheses: false
+SpacesInAngles: Never
+SpacesInConditionalStatement: false
+SpacesInCStyleCastParentheses: false
+SpacesInParentheses: false
+
+KeepEmptyLines:
+  AtStartOfBlock: false
+  AtEndOfBlock: false
+  InDeclarations: false
+  InDefinitions: false
+
+MaxEmptyLinesToKeep: 1
+#SeparateDefinitionBlocks: Never
+#EmptyLineAfterAccessModifier: Leave
+#EmptyLineBeforeAccessModifier: Leave
+
+...

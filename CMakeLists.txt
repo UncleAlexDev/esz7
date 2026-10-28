@@ -40,10 +40,11 @@ include_directories(
         src/aps_wits
         src/atlas
         src/cfg
-        src/dtr
         src/core
+        src/dtr
         src/esz7_hw
         src/esz7_pkt
+        src/heartbeat
         src/misc
         src/siu
         src/socket
@@ -110,6 +111,9 @@ set(SOURCES
         src/esz7_pkt/cmd_pkt.c
         src/esz7_pkt/cmd_pkt.h
         src/esz7_pkt/cmd_pkt_t.h
+
+        src/heartbeat/heartbeat.h
+        src/heartbeat/heartbeat.c
 
         src/misc/dbg.c
         src/misc/dbg.h
