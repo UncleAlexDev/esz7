@@ -1086,6 +1086,7 @@ void cfg_print_configuration()
     DBGF(1, "cfg.esz7_cmd_port:      %d", m_cfg.cmd_port);
     DBGF(1, "cfg.dpt_delay:          %d", m_cfg.dpt_delay);
     DBGF(1, "cfg.swap_channels12:    %d", m_cfg.swap_channels12);
+    DBGF(1, "telemetry file:         %s/telemetry.txt", m_cfg.tempdir);
     DBGNL(1);
 }
 
@@ -1230,10 +1231,7 @@ void cfg_get_app_path(int ac, char *av[])
     }
 
     strncpy(m_cfg.appdir, dirname(buf), sizeof(m_cfg.appdir) - 2);
-    DBGF(1, "dir: %s", m_cfg.appdir);
-
     strncpy(m_cfg.tempdir, "/tmp", sizeof(m_cfg.tempdir) - 2);
-    DBGF(1, "tempdir: %s", m_cfg.tempdir);
 
     strncpy(buf, av[0], sizeof(buf) - 1);
     strncpy(m_cfg.appname, basename(buf), sizeof(m_cfg.appname) - 1);
@@ -1241,10 +1239,7 @@ void cfg_get_app_path(int ac, char *av[])
     if (p) {
         *p = '\0';
     }
-    DBGF(1, "name: %s", m_cfg.appname);
-
     p = getcwd(buf, sizeof(buf));
-    DBGF(1, "work dir: %s", p);
 }
 
 //---------------------------------------------------------
