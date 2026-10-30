@@ -362,6 +362,7 @@ static bool cfg_create_default_atlas(const char *fname)
              "\n"
              "# dump=0            # (do not use)\n"
              "# tracemode=0       # (do not use)\n"
+             "# tempdir=/tmp      #\n"
              "\n",
              ctime(&tim),
              DEF_ATLAS_PORT,
@@ -451,6 +452,7 @@ static bool cfg_create_default_aps(const char *fname)
              "\n"
              "# dump=0                   # (do not use)\n"
              "# tracemode=0              # (do not use)\n"
+             "# tempdir=/tmp             #\n"
              "\n",
              ctime(&tim),
              DEF_ADS_PORT_CMD,
@@ -806,6 +808,8 @@ static void cfg_parse_params(char *text, work_mode_t mode)
             }
         } else if (strcasecmp(param, "esz7_cmd_port") == 0) {
             m_cfg.cmd_port = (int) strtol(str, NULL, 10);
+        } else if (strcasecmp(param, "tempdir") == 0) {
+            strncpy(m_cfg.tempdir, str, sizeof(m_cfg.tempdir) - 1);
         }
 
         //---------------------------------------
@@ -954,7 +958,7 @@ static bool cfg_parse_file(const char *fname)
     //-------------------------------------------
     // 3.
     char text[4 * 1024] = {0};
-    size_t nread = read(fd, text, sizeof(text) - 1);
+    const size_t nread = read(fd, text, sizeof(text) - 1);
     close(fd);
     if (nread == 0) {
         int e = errno;
@@ -991,6 +995,7 @@ void cfg_print_configuration()
     }
     DBGF(1, "cfg.dbg:                %d", debug_level);
     DBGF(1, "cfg.do_dump:            %d", m_cfg.do_dump);
+    DBGF(1, "cfg.tempdir:            %s", m_cfg.tempdir);
     DBGF(1, "cfg.decimal:            %s%s",
          (m_cfg.decimal == DECIMAL_DOT ? "dot (.)" : ""),
          (m_cfg.decimal == DECIMAL_COMMA ? "comma (,)" : ""));
@@ -1224,9 +1229,11 @@ void cfg_get_app_path(int ac, char *av[])
         }
     }
 
-    //strncpy(buf, av[0], sizeof(buf) - 1);
     strncpy(m_cfg.appdir, dirname(buf), sizeof(m_cfg.appdir) - 2);
     DBGF(1, "dir: %s", m_cfg.appdir);
+
+    strncpy(m_cfg.tempdir, "/tmp", sizeof(m_cfg.tempdir) - 2);
+    DBGF(1, "tempdir: %s", m_cfg.tempdir);
 
     strncpy(buf, av[0], sizeof(buf) - 1);
     strncpy(m_cfg.appname, basename(buf), sizeof(m_cfg.appname) - 1);
@@ -1235,11 +1242,7 @@ void cfg_get_app_path(int ac, char *av[])
         *p = '\0';
     }
     DBGF(1, "name: %s", m_cfg.appname);
-    //DBGF(1, "app: %s/%s", m_cfg.appdir, m_cfg.appname);
 
-    //if (chdir(m_cfg.appdir) == -1) {
-    //    DBGF(1, "can't change folder to %s (%s)", m_cfg.logfname, strerror(errno));
-    //}
     p = getcwd(buf, sizeof(buf));
     DBGF(1, "work dir: %s", p);
 }

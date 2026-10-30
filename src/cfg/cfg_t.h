@@ -76,6 +76,7 @@ typedef struct cfg_t
     char args[128];
     char appname[64];
     char appdir[256];
+    char tempdir[256];
     char logfname[256];
 
     work_mode_t mode;

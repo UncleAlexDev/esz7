@@ -9,8 +9,8 @@
 #define VER_H__
 
 #define APP_NAME  "BBI2-ESZ7"
-#define VER_NUM   "2.3.9"
-#define VER_DATE "Oct 28 2026"
+#define VER_NUM   "2.3.10"
+#define VER_DATE "Oct 29 2026"
 
 const char *version();
 

@@ -85,8 +85,10 @@ bool atlas_socket_send()
                 atlas()->send_error++;
                 const char *errstr = socket_strerror(sock->err);
                 strncpy(atlas()->host[i].status1, errstr, status_msg_size);
-                LOG(CRITICAL, "%s send(fd:%02d, cli_fd:%02d) failed - %s", sock->name, sock->fd, sock->fd, errstr);
-                DBGF(0, "%s send(fd:%02d, cli_fd:%02d) failed - %s", sock->name, sock->fd, sock->fd, errstr);
+                LOG(CRITICAL, "%s send(fd:%02d, cli_fd:%02d, '%s') failed - %s", sock->name, sock->fd, sock->fd,
+                    sock->ip, errstr);
+                DBGF(0, "%s send(fd:%02d, cli_fd:%02d, '%s') failed - %s", sock->name, sock->fd, sock->fd, sock->ip,
+                     errstr);
             } else {
                 atlas()->send_ok++;
                 DBGF(2, "%s:%d", inet_ntoa(sock->sockaddrin.sin_addr), sock->port);
@@ -101,8 +103,10 @@ bool atlas_socket_send()
                 atlas()->send_error++;
                 const char *errstr = socket_strerror(sock->err);
                 strncpy(atlas()->host[i].status2, errstr, status_msg_size);
-                LOG(CRITICAL, "%s send(fd:%02d, cli_fd:%02d) failed - %s", sock->name, sock->fd, sock->fd, errstr);
-                DBGF(0, "%s send(fd:%02d, cli_fd:%02d) failed - %s", sock->name, sock->fd, sock->fd, errstr);
+                LOG(CRITICAL, "%s send(fd:%02d, cli_fd:%02d, '%s') failed - %s", sock->name, sock->fd, sock->fd,
+                    sock->ip, errstr);
+                DBGF(0, "%s send(fd:%02d, cli_fd:%02d, '%s') failed - %s", sock->name, sock->fd, sock->fd, sock->ip,
+                     errstr);
             } else {
                 atlas()->send_ok++;
                 DBGF(2, "%s:%d", inet_ntoa(sock->sockaddrin.sin_addr), sock->port);

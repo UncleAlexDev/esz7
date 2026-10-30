@@ -55,7 +55,7 @@ bool atlas_run()
 
     if (atlas()->fd_stat == -1) {
         char fname[256 + 32];
-        snprintf(fname, sizeof(fname), "%s/stat.txt", cfg()->appdir);
+        snprintf(fname, sizeof(fname), "%s/telemetry.txt", cfg()->tempdir);
         atlas()->fd_stat = open(fname, O_CREAT | O_TRUNC | O_WRONLY, 0640);
         if (atlas()->fd_stat == -1) {
             LOG(INFO, "can't create telemetry file '%s'", fname);
